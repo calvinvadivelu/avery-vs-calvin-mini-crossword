@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mini Crossword Showdown</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,700;9..144,900&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+/* ═══════════ WRAPPED OVERLAY ═══════════ */
+#wrapped-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: #1a1008;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  overflow: hidden; user-select: none;
+}
+.slide-progress {
+  position: absolute; top: 1.5rem; left: 50%;
+  transform: translateX(-50%);
+  display: flex; gap: 5px; z-index: 10;
+  width: calc(100% - 4rem); max-width: 500px;
+}
+.progress-dot {
+  height: 3px; border-radius: 3px;
+  background: rgba(255,255,255,0.22);
+  flex: 1; position: relative; overflow: hidden;
+}
+.progress-dot.done { background: rgba(255,255,255,0.8); }
+.progress-dot.active::after {
+  content: ''; position: absolute; inset: 0;
+  background: rgba(255,255,255,0.85);
+  animation: progressFill var(--duration, 5.5s) linear forwards;
+}
+@keyframes progressFill { from { width: 0; } to { width: 100%; } }
+
+.skip-btn {
+  position: absolute; top: 1.4rem; right: 1.5rem;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: rgba(255,255,255,0.65);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.78rem; font-weight: 600;
+  padding: 0.35rem 0.9rem; border-radius: 100px;
+  cursor: pointer; z-index: 20; letter-spacing: 0.04em;
+  transition: background 0.2s;
+}
+.skip-btn:hover { background: rgba(255,255,255,0.2); }
+
+.tap-prev { position: absolute; left: 0; top: 0; bottom: 0; width: 28%; z-index: 15; }
+.tap-next { position: absolute; right: 0; top: 0; bottom: 0; width: 72%; z-index: 15; }
+
+.slide {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 2rem 2rem 3rem; text-align: center;
+  opacity: 0; pointer-events: none;
+}
+.slide.entering { animation: slideEnter 0.55s cubic-bezier(0.22,1,0.36,1) forwards; }
+.slide.exiting  { animation: slideExit  0.35s cubic-bezier(0.4,0,1,1)     forwards; }
+@keyframes slideEnter {
+  from { opacity:0; transform: translateY(36px) scale(0.97); }
+  to   { opacity:1; transform: translateY(0) scale(1); }
+}
+@keyframes slideExit {
+  from { opacity:1; transform: translateY(0) scale(1); }
+  to   { opacity:0; transform: translateY(-28px) scale(1.03); }
+}
+
+.slide-bg {
+  position: absolute; inset: 0; overflow: hidden;
+}
+.blob {
+  position: absolute; border-radius: 50%;
+  filter: blur(90px); opacity: 0.5;
+  animation: blobDrift 9s ease-in-out infinite alternate;
+}
+@keyframes blobDrift {
+  from { transform: translate(0,0) scale(1); }
+  to   { transform: translate(25px,-18px) scale(1.07); }
+}
+
+.slide-content {
+  position: relative; z-index: 2;
+  width: 100%; max-width: 560px;
+}
+.slide-eyebrow {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.76rem; font-weight: 700;
+  letter-spacing: 0.2em; text-transform: uppercase;
+  color: rgba(255,255,255,0.55); margin-bottom: 1rem;
+  animation: tpop 0.55s 0.15s ease-out backwards;
+}
+.slide-big {
+  font-family: 'Fraunces', serif; font-weight: 900;
+  font-size: clamp(4.5rem,20vw,10rem);
+  line-height: 0.88; color: #fff; letter-spacing: -0.03em;
+  animation: tpop 0.5s 0.3s cubic-bezier(0.34,1.56,0.64,1) backwards;
+}
+.slide-big.orange { color: #F29060; }
+.slide-big.blue   { color: #7EB0FF; }
+.slide-big.gold   { color: #F5C97A; }
+.slide-big.green  { color: #7EDFA0; }
+.slide-big.red    { color: #FF8A8A; }
+
+.slide-label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: clamp(1.05rem,3.8vw,1.65rem); font-weight: 700;
+  color: rgba(255,255,255,0.92); margin-top: 0.7rem; line-height: 1.3;
+  animation: tpop 0.5s 0.48s ease-out backwards;
+}
+.slide-sub {
+  font-size: clamp(0.82rem,2vw,1rem); font-weight: 500;
+  color: rgba(255,255,255,0.45); margin-top: 0.65rem;
+  animation: tpop 0.5s 0.62s ease-out backwards;
+}
+@keyframes tpop {
+  from { opacity:0; transform: translateY(16px); }
+  to   { opacity:1; transform: translateY(0); }
+}
+.slide-chip {
+  display: inline-block; padding: 0.38rem 1.1rem;
+  border-radius: 100px; font-size: 0.83rem; font-weight: 700;
+  margin-top: 1.1rem; animation: tpop 0.5s 0.68s ease-out backwards;
+}
+.chip-orange { background: rgba(242,144,96,0.2);  color: #F7B285; }
+.chip-blue   { background: rgba(91,141,239,0.2);  color: #8DB8FF; }
+.chip-gold   { background: rgba(245,201,122,0.2); color: #F5C97A; }
+.chip-red    { background: rgba(255,138,138,0.2); color: #FF9999; }
+.chip-white  { background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.8); }
+
+.slide-versus {
+  display: flex; gap: clamp(1.5rem,5vw,3.5rem);
+  align-items: center; justify-content: center;
+  animation: tpop 0.5s 0.3s ease-out backwards;
+}
+.versus-block { text-align: center; }
+.versus-name {
+  font-size: 0.74rem; font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 0.3rem;
+}
+.versus-num {
+  font-family: 'Fraunces', serif; font-weight: 900;
+  font-size: clamp(3.2rem,14vw,7rem); line-height: 0.88;
+}
+.versus-unit { font-size: 0.8rem; color: rgba(255,255,255,0.4); margin-top: 0.3rem; }
+.versus-divider {
+  font-family: 'Fraunces', serif;
+  font-size: 2rem; color: rgba(255,255,255,0.18);
+}
+
+.slide-bars {
+  width: 100%; max-width: 460px; margin: 0 auto;
+  animation: tpop 0.5s 0.5s ease-out backwards;
+}
+.bar-row { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 1rem; }
+.bar-name {
+  font-size: 0.72rem; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  width: 58px; text-align: right; flex-shrink: 0;
+}
+.bar-track {
+  flex: 1; height: 38px; background: rgba(255,255,255,0.07);
+  border-radius: 9px; overflow: hidden;
+}
+.bar-fill {
+  height: 100%; border-radius: 9px;
+  display: flex; align-items: center; justify-content: flex-end;
+  padding-right: 0.75rem;
+  font-family: 'Fraunces', serif; font-weight: 700;
+  font-size: 1rem; color: #fff; width: 0;
+  transition: width 1.3s cubic-bezier(0.34,1.15,0.64,1);
+}
+.bar-fill.orange { background: linear-gradient(90deg,#b85520,#F29060); }
+.bar-fill.blue   { background: linear-gradient(90deg,#2a5fdb,#5B8DEF); }
+
+.slide-cw-icon {
+  display: inline-flex; gap: 4px; margin-bottom: 1.1rem;
+  animation: tpop 0.4s 0.08s ease-out backwards;
+}
+.slide-cw-icon span { width: 20px; height: 20px; border-radius: 4px; display: inline-block; }
+
+.cta-btn {
+  display: inline-flex; align-items: center; gap: 0.55rem;
+  margin-top: 2.2rem; padding: 1rem 2.4rem; border-radius: 100px;
+  background: #fff; color: #1a1008;
+  font-family: 'DM Sans', sans-serif; font-size: 1rem; font-weight: 700;
+  border: none; cursor: pointer;
+  animation: tpop 0.5s 0.85s ease-out backwards;
+  transition: transform 0.2s, box-shadow 0.2s;
+  position: relative; z-index: 20; pointer-events: auto;
+}
+.cta-btn:hover { transform: scale(1.04); box-shadow: 0 8px 30px rgba(255,255,255,0.22); }
+
+/* ═══════════ DASHBOARD ═══════════ */
+#dashboard { opacity: 0; transition: opacity 0.8s ease; }
+#dashboard.visible { opacity: 1; }
+
+:root {
+  --calvin: #E8834A; --calvin-light: #FDEBD3; --calvin-glow: rgba(232,131,74,0.25);
+  --avery: #5B8DEF;  --avery-light: #D6E4FC;  --avery-glow: rgba(91,141,239,0.25);
+  --bg: #FFF8F0; --bg2: #FFF1E3; --text: #3A2E26; --text-muted: #8A7D74;
+  --card: #FFFFFF; --card-shadow: rgba(58,46,38,0.06);
+  --accent: #D4A86A; --tie: #C4B5A5;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; overflow-x:hidden; }
+body::before {
+  content:''; position:fixed; inset:0;
+  background-image: linear-gradient(rgba(212,168,106,0.06) 1px,transparent 1px), linear-gradient(90deg,rgba(212,168,106,0.06) 1px,transparent 1px);
+  background-size:32px 32px; pointer-events:none; z-index:0;
+}
+.container { max-width:1100px; margin:0 auto; padding:2rem 1.5rem 4rem; position:relative; z-index:1; }
+header { text-align:center; margin-bottom:2rem; animation:fadeInDown 0.8s ease-out; }
+.crossword-icon { display:inline-flex; gap:3px; margin-bottom:1rem; }
+.crossword-icon span { width:22px; height:22px; border-radius:4px; display:inline-block; animation:popIn 0.4s ease-out backwards; }
+.crossword-icon span:nth-child(1){background:var(--calvin);animation-delay:0.1s}
+.crossword-icon span:nth-child(2){background:var(--text);animation-delay:0.15s}
+.crossword-icon span:nth-child(3){background:var(--avery);animation-delay:0.2s}
+.crossword-icon span:nth-child(4){background:var(--text);animation-delay:0.25s}
+.crossword-icon span:nth-child(5){background:var(--calvin);animation-delay:0.3s}
+h1 { font-family:'Fraunces',serif; font-weight:900; font-size:3rem; line-height:1.1; margin-bottom:0.4rem; letter-spacing:-0.02em; }
+.subtitle { font-size:1.05rem; color:var(--text-muted); font-weight:500; }
+.date-range { display:inline-block; margin-top:0.75rem; padding:0.35rem 1rem; background:var(--bg2); border-radius:100px; font-size:0.82rem; color:var(--text-muted); font-weight:600; letter-spacing:0.03em; }
+.legend { display:flex; justify-content:center; gap:2.5rem; margin-bottom:2rem; animation:fadeIn 0.8s ease-out 0.3s backwards; }
+.legend-item { display:flex; align-items:center; gap:0.5rem; font-weight:600; font-size:1rem; }
+.legend-dot { width:14px; height:14px; border-radius:50%; }
+.legend-dot.calvin { background:var(--calvin); box-shadow:0 0 8px var(--calvin-glow); }
+.legend-dot.avery  { background:var(--avery);  box-shadow:0 0 8px var(--avery-glow); }
+
+.tabs-wrapper { position:sticky; top:0; z-index:100; background:var(--bg); padding:0.75rem 0; margin-bottom:1.5rem; border-bottom:1px solid rgba(212,168,106,0.2); animation:fadeIn 0.6s ease-out 0.4s backwards; }
+.tabs { display:flex; gap:0.4rem; overflow-x:auto; scrollbar-width:none; justify-content:center; flex-wrap:wrap; }
+.tabs::-webkit-scrollbar{display:none}
+.tab-btn { display:flex; align-items:center; gap:0.45rem; padding:0.5rem 1.1rem; border-radius:100px; border:1.5px solid rgba(212,168,106,0.3); background:transparent; color:var(--text-muted); font-family:'DM Sans',sans-serif; font-size:0.85rem; font-weight:600; cursor:pointer; white-space:nowrap; transition:all 0.2s; }
+.tab-btn:hover { border-color:var(--accent); color:var(--text); background:rgba(212,168,106,0.08); }
+.tab-btn.active { background:var(--text); border-color:var(--text); color:#FFF8F0; }
+.panel { display:none; animation:panelIn 0.35s ease-out; }
+.panel.active { display:block; }
+@keyframes panelIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+
+.stats-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:1rem; margin-bottom:2rem; }
+.stat-card { background:var(--card); border-radius:16px; padding:1.4rem 1.3rem; box-shadow:0 2px 12px var(--card-shadow); text-align:center; transition:transform 0.2s,box-shadow 0.2s; animation:fadeInUp 0.6s ease-out backwards; }
+.stat-card:hover { transform:translateY(-3px); box-shadow:0 6px 24px rgba(58,46,38,0.1); }
+.stat-card:nth-child(1){animation-delay:0.05s}.stat-card:nth-child(2){animation-delay:0.1s}.stat-card:nth-child(3){animation-delay:0.15s}.stat-card:nth-child(4){animation-delay:0.2s}.stat-card:nth-child(5){animation-delay:0.25s}
+.stat-label { font-size:0.72rem; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-muted); font-weight:700; margin-bottom:0.5rem; }
+.stat-values { display:flex; justify-content:center; gap:1.2rem; align-items:baseline; }
+.stat-player { display:flex; flex-direction:column; align-items:center; gap:0.15rem; }
+.stat-number { font-family:'Fraunces',serif; font-weight:700; font-size:1.9rem; line-height:1; }
+.stat-number.calvin{color:var(--calvin)}.stat-number.avery{color:var(--avery)}
+.stat-name { font-size:0.65rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; }
+.stat-vs { font-family:'Fraunces',serif; color:var(--tie); font-size:0.9rem; font-weight:400; }
+.stat-single .stat-number { font-size:2.2rem; }
+.stat-winner-badge { display:inline-block; margin-top:0.5rem; padding:0.15rem 0.6rem; border-radius:100px; font-size:0.68rem; font-weight:700; letter-spacing:0.05em; }
+.stat-winner-badge.calvin{background:var(--calvin-light);color:var(--calvin)}
+.stat-winner-badge.avery{background:var(--avery-light);color:var(--avery)}
+
+.chart-card { background:var(--card); border-radius:20px; padding:1.8rem; box-shadow:0 2px 12px var(--card-shadow); margin-bottom:1.5rem; animation:fadeInUp 0.6s ease-out 0.1s backwards; }
+.chart-card h3 { font-family:'Fraunces',serif; font-weight:700; font-size:1.2rem; margin-bottom:1rem; }
+.chart-wrapper { position:relative; width:100%; max-height:350px; }
+
+.insight-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:1rem; margin-bottom:2rem; }
+.insight-card { background:var(--card); border-radius:16px; padding:1.5rem; box-shadow:0 2px 12px var(--card-shadow); border-left:4px solid var(--accent); animation:fadeInUp 0.6s ease-out backwards; transition:transform 0.2s,box-shadow 0.2s; }
+.insight-card:hover{transform:translateY(-3px);box-shadow:0 6px 24px rgba(58,46,38,0.1)}
+.insight-card:nth-child(odd){animation-delay:0.1s}.insight-card:nth-child(even){animation-delay:0.2s}
+.insight-card h3 { font-family:'Fraunces',serif; font-weight:700; font-size:1.05rem; margin-bottom:0.5rem; }
+.insight-card .emoji{font-size:1.3rem;margin-right:0.3rem}
+.insight-card p { font-size:0.9rem; color:var(--text-muted); line-height:1.55; }
+
+.donut-container{display:flex;justify-content:center;align-items:center;gap:2rem;flex-wrap:wrap}
+.donut-wrap{position:relative;width:240px;height:240px}
+.donut-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center}
+.donut-center .big{font-family:'Fraunces',serif;font-weight:900;font-size:1.5rem}
+.donut-center .small{font-size:0.72rem;color:var(--text-muted);font-weight:600}
+.donut-legend{display:flex;flex-direction:column;gap:0.8rem}
+.donut-legend-item{display:flex;align-items:center;gap:0.6rem;font-size:0.95rem;font-weight:600}
+.donut-legend-dot{width:12px;height:12px;border-radius:50%}
+
+.day-browser{background:var(--card);border-radius:20px;padding:1.8rem;box-shadow:0 2px 12px var(--card-shadow);margin-bottom:1.5rem;animation:fadeInUp 0.4s ease-out}
+.day-browser h3{font-family:'Fraunces',serif;font-weight:700;font-size:1.2rem;margin-bottom:1.2rem}
+.day-nav{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap}
+.day-nav-btn{width:40px;height:40px;border-radius:50%;border:1.5px solid rgba(212,168,106,0.3);background:transparent;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;color:var(--text);flex-shrink:0}
+.day-nav-btn:hover{background:var(--bg2);border-color:var(--accent)}
+.day-nav-btn:disabled{opacity:0.3;cursor:not-allowed}
+.day-display{flex:1;text-align:center}
+.day-date-label{font-family:'Fraunces',serif;font-weight:700;font-size:1.4rem}
+.day-index-label{font-size:0.78rem;color:var(--text-muted);font-weight:600;margin-top:0.1rem}
+.day-result-cards{display:grid;grid-template-columns:1fr auto 1fr;gap:1rem;align-items:center;margin-bottom:1.5rem}
+.day-player-card{border-radius:16px;padding:1.5rem 1rem;text-align:center;transition:all 0.3s}
+.day-player-card.calvin-card{background:var(--calvin-light)}
+.day-player-card.avery-card{background:var(--avery-light)}
+.day-player-card .player-name{font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;font-weight:700;margin-bottom:0.4rem}
+.day-player-card.calvin-card .player-name{color:var(--calvin)}
+.day-player-card.avery-card  .player-name{color:var(--avery)}
+.day-player-card .player-time{font-family:'Fraunces',serif;font-weight:900;font-size:2.8rem;line-height:1}
+.day-player-card.calvin-card .player-time{color:var(--calvin)}
+.day-player-card.avery-card  .player-time{color:var(--avery)}
+.day-player-card .player-unit{font-size:0.8rem;color:var(--text-muted);font-weight:600;margin-top:0.2rem}
+.day-player-card .winner-crown{font-size:1.4rem;margin-bottom:0.4rem;display:block}
+.day-vs{text-align:center}
+.day-vs-text{font-family:'Fraunces',serif;font-size:1.1rem;color:var(--tie)}
+.day-margin-text{font-size:0.75rem;font-weight:700;color:var(--text-muted);margin-top:0.3rem}
+.day-result-banner{border-radius:12px;padding:0.9rem 1.2rem;text-align:center;font-weight:700;font-size:0.92rem;margin-bottom:1.2rem}
+.day-result-banner.calvin{background:var(--calvin-light);color:var(--calvin)}
+.day-result-banner.avery{background:var(--avery-light);color:var(--avery)}
+.day-result-banner.tie{background:#f0ebe5;color:var(--text-muted)}
+.day-jump{display:flex;gap:0.6rem;align-items:center;flex-wrap:wrap;margin-top:0.5rem}
+.day-jump label{font-size:0.82rem;font-weight:600;color:var(--text-muted)}
+.day-jump select{padding:0.4rem 0.7rem;border-radius:8px;border:1.5px solid rgba(212,168,106,0.3);background:var(--bg2);font-family:'DM Sans',sans-serif;font-size:0.82rem;font-weight:600;color:var(--text);cursor:pointer}
+.jump-random{padding:0.4rem 0.85rem;border-radius:8px;border:1.5px solid rgba(212,168,106,0.3);background:transparent;font-family:'DM Sans',sans-serif;font-size:0.82rem;font-weight:600;color:var(--text-muted);cursor:pointer;transition:all 0.2s}
+.jump-random:hover{background:var(--bg2);color:var(--text);border-color:var(--accent)}
+.month-btn{padding:0.3rem 0.75rem;border-radius:100px;border:1.5px solid rgba(212,168,106,0.3);background:transparent;font-family:'DM Sans',sans-serif;font-size:0.78rem;font-weight:600;color:var(--text-muted);cursor:pointer;transition:all 0.18s}
+.month-btn:hover{border-color:var(--accent);color:var(--text)}
+.month-btn.active{background:var(--text);border-color:var(--text);color:#FFF8F0}
+
+.records-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin-bottom:1.5rem}
+.record-card{background:var(--card);border-radius:16px;padding:1.3rem 1.2rem;box-shadow:0 2px 12px var(--card-shadow);animation:fadeInUp 0.5s ease-out backwards;cursor:pointer;transition:transform 0.2s,box-shadow 0.2s;display:block}
+.record-card:hover{transform:translateY(-3px);box-shadow:0 6px 24px rgba(58,46,38,0.1)}
+.record-meta{font-size:0.7rem;text-transform:uppercase;letter-spacing:0.1em;font-weight:700;color:var(--text-muted);margin-bottom:0.35rem}
+.record-headline{font-family:'Fraunces',serif;font-weight:700;font-size:1.5rem;margin-bottom:0.2rem}
+.record-detail{font-size:0.82rem;color:var(--text-muted);font-weight:500}
+.record-date-chip{display:inline-block;margin-top:0.5rem;padding:0.2rem 0.65rem;background:var(--bg2);border-radius:100px;font-size:0.72rem;font-weight:700;color:var(--text-muted)}
+.record-card.calvin-record{border-top:3px solid var(--calvin)}
+.record-card.avery-record{border-top:3px solid var(--avery)}
+.record-card.tie-record{border-top:3px solid var(--accent)}
+
+.streak-table{width:100%;border-collapse:collapse;font-size:0.88rem;margin-top:0.5rem}
+.streak-table th{font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);font-weight:700;padding:0.5rem 0.8rem;text-align:left;border-bottom:1px solid rgba(212,168,106,0.2)}
+.streak-table td{padding:0.6rem 0.8rem;border-bottom:1px solid rgba(212,168,106,0.1);font-weight:500}
+.streak-table tr:last-child td{border-bottom:none}
+.streak-table .streak-player{font-weight:700}
+.streak-table .streak-player.calvin{color:var(--calvin)}
+.streak-table .streak-player.avery{color:var(--avery)}
+
+footer{text-align:center;margin-top:3rem;padding-top:2rem;border-top:1px solid rgba(212,168,106,0.2);color:var(--text-muted);font-size:0.82rem}
+footer span{font-weight:600}
+
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeInDown{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes popIn{from{opacity:0;transform:scale(0.5)}to{opacity:1;transform:scale(1)}}
+
+@media(max-width:600px){
+  h1{font-size:2rem}
+  .stats-row{grid-template-columns:1fr 1fr}
+  .stat-number{font-size:1.5rem}
+  .donut-container{flex-direction:column;align-items:center}
+  .day-result-cards{grid-template-columns:1fr;gap:0.6rem}
+  .day-vs{display:none}
+  .day-player-card .player-time{font-size:2rem}
+}
+</style>
+</head>
+<body>
+
+<!-- WRAPPED OVERLAY -->
+<div id="wrapped-overlay">
+  <div class="slide-progress" id="slideProgress"></div>
+  <button class="skip-btn" id="skipBtn">Skip &rsaquo;</button>
+  <div class="tap-prev" id="tapPrev"></div>
+  <div class="tap-next" id="tapNext"></div>
+  <div id="slidesContainer"></div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard">
+  <div class="container">
+    <header>
+      <div class="crossword-icon"><span></span><span></span><span></span><span></span><span></span></div>
+      <h1>Mini Crossword Showdown</h1>
+      <p class="subtitle">Calvin vs. Avery T &mdash; A tale of speed &amp; consistency</p>
+      <div class="date-range">May 26, 2025 &rarr; Feb 9, 2026 &middot; 231 puzzles</div>
+    </header>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot calvin"></div> Calvin</div>
+      <div class="legend-item"><div class="legend-dot avery"></div> Avery T</div>
+    </div>
+    <div class="tabs-wrapper">
+      <div class="tabs" id="tabs">
+        <button class="tab-btn active" data-tab="overview"><span>&#x1F4CA;</span> Overview</button>
+        <button class="tab-btn" data-tab="timeline"><span>&#x1F4C8;</span> Timeline</button>
+        <button class="tab-btn" data-tab="daybyday"><span>&#x1F4C5;</span> Day by Day</button>
+        <button class="tab-btn" data-tab="records"><span>&#x1F3C6;</span> Records</button>
+        <button class="tab-btn" data-tab="insights"><span>&#x1F50D;</span> Insights</button>
+      </div>
+    </div>
+    <div class="panel active" id="panel-overview">
+      <div class="stats-row" id="statsRow"></div>
+      <div class="chart-card">
+        <h3>&#x1F3C6; Head-to-Head Record</h3>
+        <div class="donut-container">
+          <div class="donut-wrap">
+            <canvas id="donutChart"></canvas>
+            <div class="donut-center"><div class="big">231</div><div class="small">PUZZLES</div></div>
+          </div>
+          <div class="donut-legend" id="donutLegend"></div>
+        </div>
+      </div>
+      <div class="chart-card">
+        <h3>&#x1F4CA; Monthly Averages</h3>
+        <div class="chart-wrapper"><canvas id="monthlyChart"></canvas></div>
+      </div>
+    </div>
+    <div class="panel" id="panel-timeline">
+      <div class="chart-card">
+        <h3>&#x1F4C8; Solve Times Over Time</h3>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem;" id="timelineMonthFilter"></div>
+        <div class="chart-wrapper"><canvas id="timelineChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>&#x26A1; Daily Margin (Calvin &minus; Avery T)</h3>
+        <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:1rem;">Below zero = Calvin wins. Above zero = Avery wins.</p>
+        <div class="chart-wrapper"><canvas id="diffChart"></canvas></div>
+      </div>
+    </div>
+    <div class="panel" id="panel-daybyday">
+      <div class="day-browser">
+        <h3>&#x1F4C5; Browse Each Game</h3>
+        <div class="day-nav">
+          <button class="day-nav-btn" id="dayPrev">&#8592;</button>
+          <div class="day-display">
+            <div class="day-date-label" id="dayDateLabel"></div>
+            <div class="day-index-label" id="dayIndexLabel"></div>
+          </div>
+          <button class="day-nav-btn" id="dayNext">&#8594;</button>
+        </div>
+        <div class="day-result-cards" id="dayResultCards"></div>
+        <div class="day-result-banner" id="dayResultBanner"></div>
+        <div class="day-jump">
+          <label>Jump to:</label>
+          <select id="daySelect"></select>
+          <button class="jump-random" id="dayRandom">&#x1F3B2; Random</button>
+        </div>
+      </div>
+    </div>
+    <div class="panel" id="panel-records">
+      <div class="records-grid" id="recordsGrid"></div>
+      <div class="chart-card"><h3>&#x1F525; Win Streaks</h3><table class="streak-table" id="streakTable"></table></div>
+      <div class="chart-card"><h3>&#x1F4A5; Biggest Outliers (Over 200s)</h3><table class="streak-table" id="outliersTable"></table></div>
+    </div>
+    <div class="panel" id="panel-insights">
+      <div class="insight-grid" id="insightGrid"></div>
+    </div>
+    <footer>Built with &#x2615; and competitive spirit &middot; <span>NYT Mini Crossword Stats</span></footer>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+//  DATA
+// ═══════════════════════════════════════════
+var raw = {"2025-05-26":{"Calvin":140,"Avery T":160},"2025-05-27":{"Calvin":62,"Avery T":121},"2025-05-28":{"Calvin":55,"Avery T":70},"2025-05-31":{"Calvin":128,"Avery T":148},"2025-06-03":{"Calvin":58,"Avery T":65},"2025-06-04":{"Calvin":15,"Avery T":167},"2025-06-06":{"Calvin":62,"Avery T":111},"2025-06-07":{"Calvin":273,"Avery T":253},"2025-06-08":{"Calvin":84,"Avery T":94},"2025-06-09":{"Calvin":135,"Avery T":90},"2025-06-11":{"Calvin":50,"Avery T":62},"2025-06-12":{"Calvin":44,"Avery T":50},"2025-06-13":{"Calvin":107,"Avery T":190},"2025-06-14":{"Calvin":187,"Avery T":206},"2025-06-15":{"Calvin":116,"Avery T":218},"2025-06-16":{"Calvin":57,"Avery T":27},"2025-06-17":{"Calvin":103,"Avery T":248},"2025-06-18":{"Calvin":90,"Avery T":58},"2025-06-19":{"Calvin":72,"Avery T":85},"2025-06-20":{"Calvin":57,"Avery T":108},"2025-06-21":{"Calvin":160,"Avery T":358},"2025-06-22":{"Calvin":118,"Avery T":80},"2025-06-23":{"Calvin":47,"Avery T":166},"2025-06-24":{"Calvin":49,"Avery T":92},"2025-06-26":{"Calvin":105,"Avery T":91},"2025-06-27":{"Calvin":54,"Avery T":40},"2025-06-29":{"Calvin":119,"Avery T":74},"2025-06-30":{"Calvin":94,"Avery T":102},"2025-07-01":{"Calvin":103,"Avery T":100},"2025-07-02":{"Calvin":135,"Avery T":69},"2025-07-03":{"Calvin":36,"Avery T":65},"2025-07-04":{"Calvin":96,"Avery T":104},"2025-07-05":{"Calvin":105,"Avery T":163},"2025-07-06":{"Calvin":131,"Avery T":131},"2025-07-07":{"Calvin":71,"Avery T":149},"2025-07-08":{"Calvin":53,"Avery T":137},"2025-07-09":{"Calvin":132,"Avery T":39},"2025-07-10":{"Calvin":126,"Avery T":192},"2025-07-11":{"Calvin":63,"Avery T":137},"2025-07-12":{"Calvin":215,"Avery T":100},"2025-07-13":{"Calvin":35,"Avery T":48},"2025-07-14":{"Calvin":40,"Avery T":52},"2025-07-15":{"Calvin":37,"Avery T":50},"2025-07-16":{"Calvin":106,"Avery T":337},"2025-07-17":{"Calvin":90,"Avery T":97},"2025-07-20":{"Calvin":122,"Avery T":136},"2025-07-21":{"Calvin":51,"Avery T":48},"2025-07-22":{"Calvin":58,"Avery T":59},"2025-07-23":{"Calvin":29,"Avery T":119},"2025-07-24":{"Calvin":116,"Avery T":72},"2025-07-30":{"Calvin":53,"Avery T":59},"2025-07-31":{"Calvin":64,"Avery T":52},"2025-08-01":{"Calvin":81,"Avery T":61},"2025-08-02":{"Calvin":161,"Avery T":120},"2025-08-03":{"Calvin":53,"Avery T":86},"2025-08-04":{"Calvin":40,"Avery T":139},"2025-08-05":{"Calvin":130,"Avery T":186},"2025-08-06":{"Calvin":53,"Avery T":53},"2025-08-07":{"Calvin":28,"Avery T":53},"2025-08-08":{"Calvin":86,"Avery T":77},"2025-08-09":{"Calvin":86,"Avery T":196},"2025-08-10":{"Calvin":105,"Avery T":49},"2025-08-11":{"Calvin":32,"Avery T":75},"2025-08-12":{"Calvin":118,"Avery T":101},"2025-08-13":{"Calvin":85,"Avery T":78},"2025-08-14":{"Calvin":94,"Avery T":55},"2025-08-15":{"Calvin":39,"Avery T":108},"2025-08-16":{"Calvin":144,"Avery T":280},"2025-08-17":{"Calvin":55,"Avery T":142},"2025-08-18":{"Calvin":76,"Avery T":119},"2025-08-19":{"Calvin":41,"Avery T":71},"2025-08-20":{"Calvin":33,"Avery T":60},"2025-08-21":{"Calvin":34,"Avery T":24},"2025-08-22":{"Calvin":95,"Avery T":113},"2025-08-23":{"Calvin":84,"Avery T":162},"2025-08-24":{"Calvin":108,"Avery T":603},"2025-08-25":{"Calvin":50,"Avery T":66},"2025-08-26":{"Calvin":98,"Avery T":197},"2025-08-28":{"Calvin":61,"Avery T":46},"2025-08-29":{"Calvin":43,"Avery T":46},"2025-08-30":{"Calvin":112,"Avery T":216},"2025-08-31":{"Calvin":41,"Avery T":41},"2025-09-01":{"Calvin":29,"Avery T":77},"2025-09-02":{"Calvin":121,"Avery T":129},"2025-09-03":{"Calvin":83,"Avery T":56},"2025-09-04":{"Calvin":31,"Avery T":41},"2025-09-05":{"Calvin":121,"Avery T":79},"2025-09-09":{"Calvin":45,"Avery T":36},"2025-09-10":{"Calvin":69,"Avery T":128},"2025-09-11":{"Calvin":47,"Avery T":57},"2025-09-12":{"Calvin":28,"Avery T":48},"2025-09-15":{"Calvin":62,"Avery T":71},"2025-09-16":{"Calvin":43,"Avery T":59},"2025-09-17":{"Calvin":75,"Avery T":104},"2025-09-18":{"Calvin":116,"Avery T":103},"2025-09-19":{"Calvin":50,"Avery T":88},"2025-09-21":{"Calvin":47,"Avery T":22},"2025-09-22":{"Calvin":58,"Avery T":52},"2025-09-23":{"Calvin":59,"Avery T":109},"2025-09-25":{"Calvin":38,"Avery T":52},"2025-09-26":{"Calvin":69,"Avery T":131},"2025-09-27":{"Calvin":51,"Avery T":78},"2025-09-28":{"Calvin":67,"Avery T":107},"2025-09-29":{"Calvin":172,"Avery T":54},"2025-09-30":{"Calvin":29,"Avery T":103},"2025-10-01":{"Calvin":66,"Avery T":54},"2025-10-03":{"Calvin":135,"Avery T":54},"2025-10-04":{"Calvin":115,"Avery T":102},"2025-10-05":{"Calvin":91,"Avery T":59},"2025-10-06":{"Calvin":89,"Avery T":40},"2025-10-07":{"Calvin":62,"Avery T":104},"2025-10-08":{"Calvin":101,"Avery T":205},"2025-10-09":{"Calvin":50,"Avery T":55},"2025-10-10":{"Calvin":83,"Avery T":121},"2025-10-11":{"Calvin":171,"Avery T":71},"2025-10-13":{"Calvin":111,"Avery T":20},"2025-10-15":{"Calvin":37,"Avery T":80},"2025-10-17":{"Calvin":12,"Avery T":128},"2025-10-18":{"Calvin":67,"Avery T":116},"2025-10-19":{"Calvin":100,"Avery T":46},"2025-10-20":{"Calvin":82,"Avery T":144},"2025-10-21":{"Calvin":62,"Avery T":161},"2025-10-22":{"Calvin":42,"Avery T":38},"2025-10-23":{"Calvin":76,"Avery T":139},"2025-10-24":{"Calvin":55,"Avery T":61},"2025-10-25":{"Calvin":42,"Avery T":116},"2025-10-26":{"Calvin":30,"Avery T":35},"2025-10-27":{"Calvin":42,"Avery T":48},"2025-10-28":{"Calvin":54,"Avery T":146},"2025-10-29":{"Calvin":94,"Avery T":137},"2025-10-30":{"Calvin":51,"Avery T":114},"2025-10-31":{"Calvin":62,"Avery T":276},"2025-11-01":{"Calvin":232,"Avery T":299},"2025-11-02":{"Calvin":39,"Avery T":81},"2025-11-03":{"Calvin":36,"Avery T":60},"2025-11-04":{"Calvin":124,"Avery T":155},"2025-11-05":{"Calvin":152,"Avery T":120},"2025-11-07":{"Calvin":32,"Avery T":51},"2025-11-08":{"Calvin":75,"Avery T":120},"2025-11-09":{"Calvin":59,"Avery T":63},"2025-11-10":{"Calvin":173,"Avery T":104},"2025-11-11":{"Calvin":23,"Avery T":42},"2025-11-12":{"Calvin":61,"Avery T":33},"2025-11-13":{"Calvin":53,"Avery T":67},"2025-11-14":{"Calvin":183,"Avery T":216},"2025-11-15":{"Calvin":179,"Avery T":80},"2025-11-16":{"Calvin":141,"Avery T":73},"2025-11-17":{"Calvin":24,"Avery T":75},"2025-11-18":{"Calvin":251,"Avery T":129},"2025-11-19":{"Calvin":47,"Avery T":49},"2025-11-20":{"Calvin":36,"Avery T":69},"2025-11-21":{"Calvin":32,"Avery T":41},"2025-11-22":{"Calvin":131,"Avery T":58},"2025-11-23":{"Calvin":45,"Avery T":37},"2025-11-24":{"Calvin":62,"Avery T":56},"2025-11-25":{"Calvin":38,"Avery T":27},"2025-11-26":{"Calvin":71,"Avery T":49},"2025-11-27":{"Calvin":79,"Avery T":242},"2025-11-28":{"Calvin":17,"Avery T":84},"2025-11-29":{"Calvin":64,"Avery T":102},"2025-11-30":{"Calvin":37,"Avery T":34},"2025-12-01":{"Calvin":43,"Avery T":25},"2025-12-02":{"Calvin":58,"Avery T":87},"2025-12-03":{"Calvin":84,"Avery T":56},"2025-12-04":{"Calvin":163,"Avery T":146},"2025-12-05":{"Calvin":42,"Avery T":43},"2025-12-06":{"Calvin":113,"Avery T":80},"2025-12-07":{"Calvin":93,"Avery T":64},"2025-12-08":{"Calvin":11,"Avery T":34},"2025-12-09":{"Calvin":39,"Avery T":113},"2025-12-10":{"Calvin":34,"Avery T":31},"2025-12-11":{"Calvin":68,"Avery T":65},"2025-12-12":{"Calvin":23,"Avery T":37},"2025-12-13":{"Calvin":247,"Avery T":329},"2025-12-14":{"Calvin":35,"Avery T":90},"2025-12-15":{"Calvin":34,"Avery T":57},"2025-12-16":{"Calvin":72,"Avery T":76},"2025-12-17":{"Calvin":83,"Avery T":69},"2025-12-18":{"Calvin":61,"Avery T":58},"2025-12-19":{"Calvin":42,"Avery T":46},"2025-12-20":{"Calvin":146,"Avery T":117},"2025-12-21":{"Calvin":62,"Avery T":106},"2025-12-22":{"Calvin":114,"Avery T":72},"2025-12-23":{"Calvin":23,"Avery T":46},"2025-12-24":{"Calvin":32,"Avery T":44},"2025-12-25":{"Calvin":65,"Avery T":69},"2025-12-26":{"Calvin":35,"Avery T":33},"2025-12-27":{"Calvin":108,"Avery T":137},"2025-12-28":{"Calvin":31,"Avery T":87},"2025-12-29":{"Calvin":40,"Avery T":23},"2025-12-30":{"Calvin":29,"Avery T":29},"2025-12-31":{"Calvin":23,"Avery T":61},"2026-01-01":{"Calvin":80,"Avery T":111},"2026-01-02":{"Calvin":15,"Avery T":41},"2026-01-03":{"Calvin":102,"Avery T":134},"2026-01-04":{"Calvin":91,"Avery T":102},"2026-01-05":{"Calvin":39,"Avery T":56},"2026-01-06":{"Calvin":70,"Avery T":69},"2026-01-07":{"Calvin":35,"Avery T":104},"2026-01-08":{"Calvin":80,"Avery T":80},"2026-01-09":{"Calvin":33,"Avery T":97},"2026-01-10":{"Calvin":135,"Avery T":123},"2026-01-11":{"Calvin":42,"Avery T":51},"2026-01-12":{"Calvin":20,"Avery T":45},"2026-01-13":{"Calvin":73,"Avery T":75},"2026-01-14":{"Calvin":35,"Avery T":40},"2026-01-15":{"Calvin":92,"Avery T":48},"2026-01-16":{"Calvin":54,"Avery T":86},"2026-01-17":{"Calvin":62,"Avery T":62},"2026-01-18":{"Calvin":58,"Avery T":51},"2026-01-19":{"Calvin":64,"Avery T":58},"2026-01-20":{"Calvin":44,"Avery T":74},"2026-01-21":{"Calvin":84,"Avery T":113},"2026-01-22":{"Calvin":63,"Avery T":49},"2026-01-23":{"Calvin":54,"Avery T":55},"2026-01-24":{"Calvin":53,"Avery T":113},"2026-01-25":{"Calvin":36,"Avery T":67},"2026-01-26":{"Calvin":50,"Avery T":96},"2026-01-27":{"Calvin":33,"Avery T":44},"2026-01-28":{"Calvin":103,"Avery T":90},"2026-01-29":{"Calvin":120,"Avery T":75},"2026-01-30":{"Calvin":72,"Avery T":122},"2026-01-31":{"Calvin":141,"Avery T":343},"2026-02-01":{"Calvin":38,"Avery T":29},"2026-02-02":{"Calvin":41,"Avery T":172},"2026-02-03":{"Calvin":25,"Avery T":33},"2026-02-04":{"Calvin":111,"Avery T":39},"2026-02-06":{"Calvin":13,"Avery T":20},"2026-02-07":{"Calvin":40,"Avery T":62},"2026-02-08":{"Calvin":44,"Avery T":150},"2026-02-09":{"Calvin":46,"Avery T":47}};
+
+var dates = Object.keys(raw).sort();
+var calvinTimes = dates.map(function(d) { return raw[d].Calvin; });
+var averyTimes  = dates.map(function(d) { return raw[d]['Avery T']; });
+
+function sumArr(a) { return a.reduce(function(x,y){return x+y;}, 0); }
+function avgArr(a) { return (sumArr(a)/a.length).toFixed(1); }
+function medianArr(a) {
+  var s = a.slice().sort(function(x,y){return x-y;});
+  var m = Math.floor(s.length/2);
+  return s.length % 2 ? s[m] : ((s[m-1]+s[m])/2).toFixed(0);
+}
+function fmtDate(d) {
+  var dt = new Date(d+'T00:00:00');
+  return dt.toLocaleDateString('en-US', {weekday:'short',month:'long',day:'numeric',year:'numeric'});
+}
+function shortFmt(d) {
+  var dt = new Date(d+'T00:00:00');
+  return dt.toLocaleDateString('en-US', {month:'short',day:'numeric'});
+}
+function rollingAvg(arr, w) {
+  return arr.map(function(_, i) {
+    var sl = arr.slice(Math.max(0, i-w+1), i+1);
+    return sumArr(sl)/sl.length;
+  });
+}
+
+var calvinAvg  = avgArr(calvinTimes);
+var averyAvg   = avgArr(averyTimes);
+var calvinMed  = medianArr(calvinTimes);
+var averyMed   = medianArr(averyTimes);
+var calvinBest = Math.min.apply(null, calvinTimes);
+var averyBest  = Math.min.apply(null, averyTimes);
+var calvinWorst= Math.max.apply(null, calvinTimes);
+var averyWorst = Math.max.apply(null, averyTimes);
+var calvinBestDate  = dates[calvinTimes.indexOf(calvinBest)];
+var averyBestDate   = dates[averyTimes.indexOf(averyBest)];
+var calvinWorstDate = dates[calvinTimes.indexOf(calvinWorst)];
+var averyWorstDate  = dates[averyTimes.indexOf(averyWorst)];
+
+var calvinWins=0, averyWins=0, ties=0;
+dates.forEach(function(d) {
+  var c=raw[d].Calvin, a=raw[d]['Avery T'];
+  if(c<a) calvinWins++;
+  else if(a<c) averyWins++;
+  else ties++;
+});
+
+var calvinMargins = dates.map(function(d) {
+  return {date:d, margin:raw[d]['Avery T']-raw[d].Calvin};
+}).filter(function(x){return x.margin>0;}).sort(function(a,b){return b.margin-a.margin;});
+
+var averyMargins = dates.map(function(d) {
+  return {date:d, margin:raw[d].Calvin-raw[d]['Avery T']};
+}).filter(function(x){return x.margin>0;}).sort(function(a,b){return b.margin-a.margin;});
+
+// ═══════════════════════════════════════════
+//  WRAPPED ENGINE
+// ═══════════════════════════════════════════
+var SLIDE_DURATION = 5500;
+
+// Pre-compute comparison stats for wrapped slides
+var mo8 = {};
+dates.forEach(function(d) {
+  var k = d.slice(0,7);
+  if(!mo8[k]) mo8[k] = {c:[],a:[]};
+  mo8[k].c.push(raw[d].Calvin);
+  mo8[k].a.push(raw[d]['Avery T']);
+});
+var jC8   = mo8['2025-06'] ? avgArr(mo8['2025-06'].c) : '?';
+var jnC8  = mo8['2026-01'] ? avgArr(mo8['2026-01'].c) : '?';
+var jA8   = mo8['2025-06'] ? avgArr(mo8['2025-06'].a) : '?';
+var jnA8  = mo8['2026-01'] ? avgArr(mo8['2026-01'].a) : '?';
+var dropC = (parseFloat(jC8) - parseFloat(jnC8)).toFixed(0);
+var dropA = (parseFloat(jA8) - parseFloat(jnA8)).toFixed(0);
+
+// Sub-30s solves
+var calvinSub30 = 0, averySub30 = 0;
+dates.forEach(function(d) {
+  if(raw[d].Calvin < 30) calvinSub30++;
+  if(raw[d]['Avery T'] < 30) averySub30++;
+});
+
+// Std dev (consistency)
+var cMean = parseFloat(calvinAvg), aMean = parseFloat(averyAvg);
+var cVar = 0, aVar = 0;
+dates.forEach(function(d) {
+  cVar += Math.pow(raw[d].Calvin - cMean, 2);
+  aVar += Math.pow(raw[d]['Avery T'] - aMean, 2);
+});
+var cStd = Math.round(Math.sqrt(cVar / dates.length));
+var aStd = Math.round(Math.sqrt(aVar / dates.length));
+
+// Win streaks
+var cStrk=0, aStrk=0, maxCStrk=0, maxAStrk=0;
+dates.forEach(function(d) {
+  var c=raw[d].Calvin, a=raw[d]['Avery T'];
+  if(c<a){cStrk++;aStrk=0;if(cStrk>maxCStrk)maxCStrk=cStrk;}
+  else if(a<c){aStrk++;cStrk=0;if(aStrk>maxAStrk)maxAStrk=aStrk;}
+  else{cStrk=0;aStrk=0;}
+});
+
+// Close calls (within 5s)
+var closeCalls = 0;
+dates.forEach(function(d) {
+  if(Math.abs(raw[d].Calvin - raw[d]['Avery T']) <= 5) closeCalls++;
+});
+
+// Day of week dominance
+var dowCalvin = [0,0,0,0,0,0,0], dowAvery = [0,0,0,0,0,0,0];
+dates.forEach(function(d) {
+  var dow = new Date(d+'T12:00:00').getDay();
+  if(raw[d].Calvin < raw[d]['Avery T']) dowCalvin[dow]++;
+  else if(raw[d]['Avery T'] < raw[d].Calvin) dowAvery[dow]++;
+});
+// Find Calvin's best day (Tue=2 → 27-6, Fri=5 → 28-6)
+var dowNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+var bestDowIdx = 0, bestDowRatio = 0;
+for(var di=0;di<7;di++){
+  var total=dowCalvin[di]+dowAvery[di];
+  if(total>0){var r=dowCalvin[di]/total;if(r>bestDowRatio){bestDowRatio=r;bestDowIdx=di;}}
+}
+var bestDowName = dowNames[bestDowIdx];
+var bestDowC = dowCalvin[bestDowIdx];
+var bestDowA = dowAvery[bestDowIdx];
+// Find Avery's best day
+var avBestDowIdx=0, avBestDowRatio=0;
+for(var di2=0;di2<7;di2++){
+  var total2=dowCalvin[di2]+dowAvery[di2];
+  if(total2>0){var r2=dowAvery[di2]/total2;if(r2>avBestDowRatio){avBestDowRatio=r2;avBestDowIdx=di2;}}
+}
+var avBestDowName = dowNames[avBestDowIdx];
+var avBestDowC = dowCalvin[avBestDowIdx];
+var avBestDowA = dowAvery[avBestDowIdx];
+
+// Best combined day
+var bestCombined = {date:'',total:9999};
+var worstCombined = {date:'',total:0};
+dates.forEach(function(d){
+  var t = raw[d].Calvin + raw[d]['Avery T'];
+  if(t<bestCombined.total){bestCombined={date:d,total:t};}
+  if(t>worstCombined.total){worstCombined={date:d,total:t};}
+});
+
+var slideDefs = [
+  // 0 — Title
+  {
+    bg: ['#b84a18','#3a1005'],
+    blobs: [{c:'#E8834A',s:500,x:'60%',y:'35%'},{c:'#c96030',s:280,x:'12%',y:'72%'}],
+    html: '<div class="slide-cw-icon"><span style="background:rgba(255,255,255,0.9)"></span><span style="background:#F29060"></span><span style="background:rgba(255,255,255,0.9)"></span><span style="background:#F29060"></span><span style="background:rgba(255,255,255,0.9)"></span></div><div class="slide-eyebrow"></div><div class="slide-big" style="font-size:clamp(3rem,13vw,7rem);color:#fff">Mini Crossword<br><span style="color:#F5C97A">Showdown</span></div><div class="slide-sub" style="margin-top:1.2rem">Calvin vs. Avery T &middot; May 2025 &rarr; Feb 2026</div>'
+  },
+  // 1 — Puzzles played
+  {
+    bg: ['#14361f','#080f0b'],
+    blobs: [{c:'#3daf72',s:520,x:'50%',y:'45%'},{c:'#0f5c35',s:240,x:'22%',y:'18%'}],
+    html: '<div class="slide-eyebrow">You two showed up</div><div class="slide-big green">231</div><div class="slide-label">puzzles head-to-head</div><div class="slide-sub">That\'s 8+ months of rivalry</div>'
+  },
+  // 2 — Head-to-Head versus
+  {
+    bg: ['#130e30','#060418'],
+    blobs: [{c:'#E8834A',s:320,x:'18%',y:'28%'},{c:'#5B8DEF',s:320,x:'78%',y:'65%'}],
+    html: '<div class="slide-eyebrow">The Rivalry</div><div class="slide-versus"><div class="versus-block"><div class="versus-name" style="color:#F7B285">Calvin</div><div class="versus-num" style="color:#F29060">'+calvinWins+'</div><div class="versus-unit">wins</div></div><div class="versus-divider">vs</div><div class="versus-block"><div class="versus-name" style="color:#8DB8FF">Avery T</div><div class="versus-num" style="color:#7EB0FF">'+averyWins+'</div><div class="versus-unit">wins</div></div></div><div class="slide-sub" style="margin-top:1.3rem">+ '+ties+' perfect ties &#x1F91D;</div>'
+  },
+  // 3 — Speed comparison (bars)
+  {
+    bg: ['#111111','#050505'],
+    blobs: [{c:'#E8834A',s:280,x:'14%',y:'22%'},{c:'#5B8DEF',s:280,x:'82%',y:'70%'}],
+    html: '<div class="slide-eyebrow">Average solve time</div><div class="slide-label" style="margin-bottom:1.6rem;font-size:1.1rem;opacity:0.7">Seconds per puzzle</div><div class="slide-bars"><div class="bar-row"><div class="bar-name" style="color:#F7B285">Calvin</div><div class="bar-track"><div class="bar-fill orange" id="barCalvin">'+calvinAvg+'s</div></div></div><div class="bar-row"><div class="bar-name" style="color:#8DB8FF">Avery</div><div class="bar-track"><div class="bar-fill blue" id="barAvery">'+averyAvg+'s</div></div></div></div><div class="slide-sub" style="margin-top:1rem">Calvin is ~'+(parseFloat(averyAvg)-parseFloat(calvinAvg)).toFixed(0)+' seconds faster on average</div>',
+    onEnter: function() {
+      setTimeout(function() {
+        var max = Math.max(parseFloat(calvinAvg), parseFloat(averyAvg));
+        var bc = document.getElementById('barCalvin');
+        var ba = document.getElementById('barAvery');
+        if(bc) bc.style.width = (parseFloat(calvinAvg)/max*100) + '%';
+        if(ba) ba.style.width = (parseFloat(averyAvg)/max*100) + '%';
+      }, 350);
+    }
+  },
+  // 4 — Fastest solves face-off
+  {
+    bg: ['#051630','#01070f'],
+    blobs: [{c:'#E8834A',s:300,x:'20%',y:'32%'},{c:'#5B8DEF',s:300,x:'78%',y:'60%'}],
+    html: '<div class="slide-eyebrow">Speed Demons &#x26A1;</div><div class="slide-versus"><div class="versus-block"><div class="versus-name" style="color:#F7B285">Calvin</div><div class="versus-num" style="color:#F29060">'+calvinBest+'s</div><div class="versus-unit">fastest solve</div></div><div class="versus-divider">vs</div><div class="versus-block"><div class="versus-name" style="color:#8DB8FF">Avery T</div><div class="versus-num" style="color:#7EB0FF">'+averyBest+'s</div><div class="versus-unit">fastest solve</div></div></div><div class="slide-sub" style="margin-top:1.3rem">Sub-30s solves: Calvin <strong style="color:#F29060">'+calvinSub30+'</strong> &middot; Avery <strong style="color:#7EB0FF">'+averySub30+'</strong></div>'
+  },
+  // 5 — Consistency comparison (Steady Hand vs Wildcard)
+  {
+    bg: ['#1a0a2e','#0a0418'],
+    blobs: [{c:'#c084fc',s:480,x:'50%',y:'45%'},{c:'#7c3aed',s:200,x:'15%',y:'75%'}],
+    html: '<div class="slide-eyebrow">Consistency Check</div><div class="slide-versus"><div class="versus-block"><div class="versus-name" style="color:#F7B285">Calvin</div><div class="versus-num" style="color:#F29060;font-size:clamp(2.5rem,10vw,5rem)">&plusmn;'+cStd+'s</div><div class="versus-unit">std deviation</div></div><div class="versus-divider">vs</div><div class="versus-block"><div class="versus-name" style="color:#8DB8FF">Avery T</div><div class="versus-num" style="color:#7EB0FF;font-size:clamp(2.5rem,10vw,5rem)">&plusmn;'+aStd+'s</div><div class="versus-unit">std deviation</div></div></div><div class="slide-label" style="margin-top:1.2rem">The Steady Hand vs. The Wildcard</div><div class="slide-sub">Calvin\'s times cluster tight. Avery swings big.</div>'
+  },
+  // 6 — Biggest Blowouts (each direction)
+  {
+    bg: ['#1e1200','#0a0700'],
+    blobs: [{c:'#F5C97A',s:460,x:'55%',y:'42%'},{c:'#c9a050',s:180,x:'10%',y:'72%'}],
+    html: '<div class="slide-eyebrow">Biggest Blowouts &#x1F4A5;</div><div class="slide-versus"><div class="versus-block"><div class="versus-name" style="color:#F7B285">Calvin\'s Best</div><div class="versus-num" style="color:#F29060;font-size:clamp(2.8rem,12vw,5.5rem)">+'+calvinMargins[0].margin+'s</div><div class="versus-unit">'+shortFmt(calvinMargins[0].date)+'</div></div><div class="versus-divider">vs</div><div class="versus-block"><div class="versus-name" style="color:#8DB8FF">Avery\'s Best</div><div class="versus-num" style="color:#7EB0FF;font-size:clamp(2.8rem,12vw,5.5rem)">+'+averyMargins[0].margin+'s</div><div class="versus-unit">'+shortFmt(averyMargins[0].date)+'</div></div></div><div class="slide-sub" style="margin-top:1rem">Calvin\'s max blowout was '+(calvinMargins[0].margin - averyMargins[0].margin)+' seconds bigger</div>'
+  },
+  // 7 — Win Streaks comparison
+  {
+    bg: ['#220808','#0d0303'],
+    blobs: [{c:'#ff6b6b',s:500,x:'48%',y:'48%'},{c:'#cc3030',s:180,x:'80%',y:'18%'}],
+    html: '<div class="slide-eyebrow">Hot Streaks &#x1F525;</div><div class="slide-versus"><div class="versus-block"><div class="versus-name" style="color:#F7B285">Calvin</div><div class="versus-num" style="color:#F29060">'+maxCStrk+'</div><div class="versus-unit">wins in a row</div></div><div class="versus-divider">vs</div><div class="versus-block"><div class="versus-name" style="color:#8DB8FF">Avery T</div><div class="versus-num" style="color:#7EB0FF">'+maxAStrk+'</div><div class="versus-unit">wins in a row</div></div></div><div class="slide-sub" style="margin-top:1rem">Calvin more than doubled Avery\'s best streak</div>'
+  },
+  // 8 — Day-of-week dominance
+  {
+    bg: ['#0e1a0e','#040a04'],
+    blobs: [{c:'#7EDFA0',s:400,x:'30%',y:'35%'},{c:'#2daf62',s:250,x:'72%',y:'68%'}],
+    html: '<div class="slide-eyebrow">Day of the Week</div><div class="slide-big green" style="font-size:clamp(3rem,12vw,6rem)">'+bestDowName+'s</div><div class="slide-label">Calvin\'s best day: '+bestDowC+'&ndash;'+bestDowA+'</div><div class="slide-sub" style="margin-top:1.3rem">Avery\'s best shot? '+avBestDowName+'s at '+avBestDowA+'&ndash;'+avBestDowC+'</div><div class="slide-chip chip-white">Calvin owns Tuesdays (27&#8211;6) and Fridays (28&#8211;6)</div>'
+  },
+  // 9 — Close calls + best combined day
+  {
+    bg: ['#1a1520','#0a080e'],
+    blobs: [{c:'#E8834A',s:250,x:'20%',y:'30%'},{c:'#5B8DEF',s:250,x:'78%',y:'65%'},{c:'#D4A86A',s:200,x:'50%',y:'80%'}],
+    html: '<div class="slide-eyebrow">Photo Finishes &#x1F3CE;&#xFE0F;</div><div class="slide-big gold" style="font-size:clamp(4rem,16vw,8rem)">'+closeCalls+'</div><div class="slide-label">games within 5 seconds</div><div class="slide-sub" style="margin-top:1.3rem">Best day together: <strong style="color:#fff">'+bestCombined.total+'s combined</strong> on '+shortFmt(bestCombined.date)+'<br>Worst: <strong style="color:#fff">'+worstCombined.total+'s</strong> on '+shortFmt(worstCombined.date)+' &#x1F62C;</div>'
+  },
+  // 10 — Both improved (comparison)
+  {
+    bg: ['#061a0e','#020a06'],
+    blobs: [{c:'#7EDFA0',s:460,x:'50%',y:'56%'},{c:'#2daf62',s:200,x:'14%',y:'18%'}],
+    html: '<div class="slide-eyebrow">You both leveled up &#x1F4C8;</div><div class="slide-versus"><div class="versus-block"><div class="versus-name" style="color:#F7B285">Calvin</div><div class="versus-num" style="color:#7EDFA0;font-size:clamp(2.8rem,12vw,5.5rem)">&minus;'+dropC+'s</div><div class="versus-unit">'+jC8+'s &rarr; '+jnC8+'s</div></div><div class="versus-divider">vs</div><div class="versus-block"><div class="versus-name" style="color:#8DB8FF">Avery T</div><div class="versus-num" style="color:#7EDFA0;font-size:clamp(2.8rem,12vw,5.5rem)">&minus;'+dropA+'s</div><div class="versus-unit">'+jA8+'s &rarr; '+jnA8+'s</div></div></div><div class="slide-sub" style="margin-top:1rem">June avg &rarr; January avg &middot; Avery improved more but Calvin started faster</div>'
+  },
+  // 11 — CTA finale
+  {
+    bg: ['#0f0c08','#050403'],
+    blobs: [{c:'#E8834A',s:280,x:'22%',y:'32%'},{c:'#5B8DEF',s:280,x:'75%',y:'60%'},{c:'#D4A86A',s:180,x:'52%',y:'82%'}],
+    html: '<div class="slide-cw-icon"><span style="background:#E8834A"></span><span style="background:rgba(255,255,255,0.5)"></span><span style="background:#5B8DEF"></span><span style="background:rgba(255,255,255,0.5)"></span><span style="background:#E8834A"></span></div><div class="slide-eyebrow">That\'s a wrap &#x2728;</div><div class="slide-big" style="font-size:clamp(2.2rem,9vw,4.5rem);color:#fff;line-height:1.15">Every game.<br>Every stat.<br><span style="color:#D4A86A">All yours.</span></div><button class="cta-btn" id="ctaBtn">See Full Stats <span>&rarr;</span></button>',
+    onEnter: function() {
+      setTimeout(function() {
+        var b = document.getElementById('ctaBtn');
+        if(b) b.addEventListener('click', revealDashboard);
+      }, 600);
+    }
+  }
+];
+
+// Build slide elements
+var slidesContainer = document.getElementById('slidesContainer');
+var progressBar = document.getElementById('slideProgress');
+
+slideDefs.forEach(function() {
+  var dot = document.createElement('div');
+  dot.className = 'progress-dot';
+  progressBar.appendChild(dot);
+});
+
+function buildSlide(def) {
+  var slide = document.createElement('div');
+  slide.className = 'slide';
+  var bg = document.createElement('div');
+  bg.className = 'slide-bg';
+  bg.style.background = 'linear-gradient(140deg,' + def.bg[0] + ',' + def.bg[1] + ')';
+  def.blobs.forEach(function(b, i) {
+    var blob = document.createElement('div');
+    blob.className = 'blob';
+    blob.style.cssText = 'width:'+b.s+'px;height:'+b.s+'px;background:'+b.c+';left:'+b.x+';top:'+b.y+';transform:translate(-50%,-50%);animation-delay:'+(i*1.8)+'s;animation-duration:'+(8+i*2.2)+'s;';
+    bg.appendChild(blob);
+  });
+  slide.appendChild(bg);
+  var content = document.createElement('div');
+  content.className = 'slide-content';
+  content.innerHTML = def.html;
+  slide.appendChild(content);
+  slidesContainer.appendChild(slide);
+  return slide;
+}
+
+var slideEls = slideDefs.map(function(d) { return buildSlide(d); });
+var currentSlide = -1;
+var transitioning = false;
+var autoTimer = null;
+
+function goTo(idx, skipAnim) {
+  if(transitioning && !skipAnim) return;
+  if(idx >= slideDefs.length) { revealDashboard(); return; }
+  if(idx < 0) return;
+  transitioning = true;
+  clearTimeout(autoTimer);
+  var oldIdx = currentSlide;
+  currentSlide = idx;
+
+  document.querySelectorAll('.progress-dot').forEach(function(dot, i) {
+    dot.classList.remove('done','active');
+    dot.style.removeProperty('--duration');
+    if(i < idx) dot.classList.add('done');
+    if(i === idx) {
+      dot.style.setProperty('--duration', SLIDE_DURATION+'ms');
+      dot.classList.add('active');
+    }
+  });
+
+  if(oldIdx >= 0 && slideEls[oldIdx] && !skipAnim) {
+    var old = slideEls[oldIdx];
+    old.classList.add('exiting');
+    old.addEventListener('animationend', function() {
+      old.style.opacity = '0';
+      old.classList.remove('exiting');
+      old.style.pointerEvents = 'none';
+    }, {once:true});
+  } else if(oldIdx >= 0 && slideEls[oldIdx]) {
+    slideEls[oldIdx].style.opacity = '0';
+    slideEls[oldIdx].style.pointerEvents = 'none';
+  }
+
+  var next = slideEls[idx];
+  next.style.pointerEvents = 'auto';
+  if(!skipAnim) {
+    next.classList.add('entering');
+    next.style.opacity = '1';
+    next.addEventListener('animationend', function() {
+      next.classList.remove('entering');
+      transitioning = false;
+    }, {once:true});
+  } else {
+    next.style.opacity = '1';
+    transitioning = false;
+  }
+
+  if(slideDefs[idx].onEnter) slideDefs[idx].onEnter();
+  if(idx < slideDefs.length-1) autoTimer = setTimeout(function(){ goTo(idx+1); }, SLIDE_DURATION);
+}
+
+function revealDashboard() {
+  clearTimeout(autoTimer);
+  var ov = document.getElementById('wrapped-overlay');
+  ov.style.transition = 'opacity 0.65s ease,transform 0.65s ease';
+  ov.style.opacity = '0';
+  ov.style.transform = 'scale(1.04)';
+  setTimeout(function() {
+    ov.style.display = 'none';
+    document.body.style.overflow = '';
+    var dash = document.getElementById('dashboard');
+    dash.classList.add('visible');
+    window.scrollTo(0,0);
+    initDashboard();
+  }, 660);
+}
+
+document.getElementById('tapNext').addEventListener('click', function() {
+  if(currentSlide >= slideDefs.length-1) revealDashboard();
+  else goTo(currentSlide+1);
+});
+document.getElementById('tapPrev').addEventListener('click', function() {
+  clearTimeout(autoTimer);
+  goTo(Math.max(0, currentSlide-1));
+});
+document.getElementById('skipBtn').addEventListener('click', revealDashboard);
+
+document.addEventListener('keydown', function(e) {
+  var ov = document.getElementById('wrapped-overlay');
+  if(!ov || ov.style.display === 'none') return;
+  if(e.key === 'ArrowRight' || e.key === ' ') {
+    e.preventDefault();
+    if(currentSlide >= slideDefs.length-1) revealDashboard();
+    else goTo(currentSlide+1);
+  }
+  if(e.key === 'ArrowLeft') { e.preventDefault(); goTo(Math.max(0, currentSlide-1)); }
+  if(e.key === 'Escape') revealDashboard();
+});
+
+var _tsx = 0;
+document.getElementById('wrapped-overlay').addEventListener('touchstart', function(e) {
+  _tsx = e.touches[0].clientX;
+}, {passive:true});
+document.getElementById('wrapped-overlay').addEventListener('touchend', function(e) {
+  var dx = e.changedTouches[0].clientX - _tsx;
+  if(Math.abs(dx) > 45) {
+    if(dx < 0) { if(currentSlide >= slideDefs.length-1) revealDashboard(); else goTo(currentSlide+1); }
+    else goTo(Math.max(0, currentSlide-1));
+  }
+}, {passive:true});
+
+document.body.style.overflow = 'hidden';
+goTo(0, true);
+
+// ═══════════════════════════════════════════
+//  DASHBOARD (lazy init on first reveal)
+// ═══════════════════════════════════════════
+var dashInitted = false;
+function initDashboard() {
+  if(dashInitted) return;
+  dashInitted = true;
+
+  // Tab switching
+  document.querySelectorAll('.tab-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var tab = btn.dataset.tab;
+      document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+      document.querySelectorAll('.panel').forEach(function(p) { p.classList.remove('active'); });
+      btn.classList.add('active');
+      document.getElementById('panel-'+tab).classList.add('active');
+      document.querySelector('.tabs-wrapper').scrollIntoView({behavior:'smooth',block:'nearest'});
+    });
+  });
+
+  // Stat cards
+  var statsData = [
+    {label:'Average Time',  calvin:calvinAvg+'s',  avery:averyAvg+'s',   winner: parseFloat(calvinAvg)<parseFloat(averyAvg)?'calvin':'avery'},
+    {label:'Median Time',   calvin:calvinMed+'s',  avery:averyMed+'s',   winner: parseFloat(calvinMed)<parseFloat(averyMed)?'calvin':'avery'},
+    {label:'Best Time',     calvin:calvinBest+'s', avery:averyBest+'s',  winner: calvinBest<averyBest?'calvin':'avery'},
+    {label:'Worst Time',    calvin:calvinWorst+'s',avery:averyWorst+'s', winner: calvinWorst<averyWorst?'calvin':'avery'},
+    {label:'Games Played',  single: dates.length}
+  ];
+  var statsRow = document.getElementById('statsRow');
+  statsData.forEach(function(s) {
+    var card = document.createElement('div');
+    card.className = 'stat-card' + (s.single ? ' stat-single' : '');
+    if(s.single) {
+      card.innerHTML = '<div class="stat-label">'+s.label+'</div><div class="stat-values"><div class="stat-number" style="color:var(--accent)">'+s.single+'</div></div>';
+    } else {
+      var badge = s.winner === 'calvin'
+        ? '<div class="stat-winner-badge calvin">Calvin leads</div>'
+        : '<div class="stat-winner-badge avery">Avery leads</div>';
+      card.innerHTML = '<div class="stat-label">'+s.label+'</div><div class="stat-values"><div class="stat-player"><div class="stat-number calvin">'+s.calvin+'</div><div class="stat-name">Calvin</div></div><div class="stat-vs">vs</div><div class="stat-player"><div class="stat-number avery">'+s.avery+'</div><div class="stat-name">Avery T</div></div></div>'+badge;
+    }
+    statsRow.appendChild(card);
+  });
+
+  Chart.defaults.font.family = "'DM Sans', sans-serif";
+  Chart.defaults.color = '#8A7D74';
+
+  // Donut chart
+  new Chart(document.getElementById('donutChart').getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Calvin Wins','Avery T Wins','Ties'],
+      datasets: [{
+        data: [calvinWins, averyWins, ties],
+        backgroundColor: ['#E8834A','#5B8DEF','#C4B5A5'],
+        borderWidth: 0, spacing: 3, borderRadius: 6
+      }]
+    },
+    options: {
+      cutout: '68%', responsive: true, maintainAspectRatio: true,
+      plugins: { legend: {display:false} }
+    }
+  });
+
+  var dl = document.getElementById('donutLegend');
+  [
+    {label:'Calvin Wins — '+calvinWins+' ('+Math.round(calvinWins/dates.length*100)+'%)', color:'#E8834A'},
+    {label:'Avery T Wins — '+averyWins+' ('+Math.round(averyWins/dates.length*100)+'%)', color:'#5B8DEF'},
+    {label:'Ties — '+ties+' ('+Math.round(ties/dates.length*100)+'%)', color:'#C4B5A5'}
+  ].forEach(function(item) {
+    var el = document.createElement('div');
+    el.className = 'donut-legend-item';
+    el.innerHTML = '<div class="donut-legend-dot" style="background:'+item.color+'"></div>'+item.label;
+    dl.appendChild(el);
+  });
+
+  // Monthly chart
+  var mo = {};
+  dates.forEach(function(d) {
+    var k = d.slice(0,7);
+    if(!mo[k]) mo[k] = {calvin:[],avery:[]};
+    mo[k].calvin.push(raw[d].Calvin);
+    mo[k].avery.push(raw[d]['Avery T']);
+  });
+  var mk = Object.keys(mo).sort();
+  var ml = mk.map(function(k) {
+    var parts = k.split('-');
+    return new Date(parseInt(parts[0]), parseInt(parts[1])-1).toLocaleDateString('en-US', {month:'short',year:'2-digit'});
+  });
+  new Chart(document.getElementById('monthlyChart').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: ml,
+      datasets: [
+        {label:'Calvin',  data:mk.map(function(k){return avgArr(mo[k].calvin);}), backgroundColor:'#E8834A', borderRadius:6, barPercentage:0.7, categoryPercentage:0.7},
+        {label:'Avery T', data:mk.map(function(k){return avgArr(mo[k].avery);}),  backgroundColor:'#5B8DEF', borderRadius:6, barPercentage:0.7, categoryPercentage:0.7}
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      scales: {
+        x: {grid:{display:false}, ticks:{font:{size:11}}},
+        y: {title:{display:true,text:'Avg Seconds',font:{size:12,weight:'600'}}, grid:{color:'rgba(0,0,0,0.04)'}, ticks:{font:{size:11}}}
+      },
+      plugins: {
+        legend: {position:'top', labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,padding:16,font:{size:12,weight:'500'}}},
+        tooltip: {
+          backgroundColor:'#3A2E26', cornerRadius:8, padding:10,
+          callbacks: {
+            label: function(ctx) { return ctx.dataset.label + ': ' + parseFloat(ctx.parsed.y).toFixed(1) + 's'; }
+          }
+        }
+      }
+    }
+  });
+
+  // Timeline chart with month filter
+  var cR = rollingAvg(calvinTimes, 7);
+  var aR = rollingAvg(averyTimes, 7);
+  var sd = dates.map(function(d) { return shortFmt(d); });
+  var um = [];
+  var seen = {};
+  dates.forEach(function(d) {
+    var k = d.slice(0,7);
+    if(!seen[k]) { seen[k]=true; um.push(k); }
+  });
+
+  var tmf = document.getElementById('timelineMonthFilter');
+  var allBtn = document.createElement('button');
+  allBtn.className = 'month-btn active';
+  allBtn.textContent = 'All Time';
+  allBtn.dataset.month = 'all';
+  tmf.appendChild(allBtn);
+  um.forEach(function(k) {
+    var parts = k.split('-');
+    var label = new Date(parseInt(parts[0]), parseInt(parts[1])-1).toLocaleDateString('en-US',{month:'short',year:'2-digit'});
+    var btn = document.createElement('button');
+    btn.className = 'month-btn';
+    btn.textContent = label;
+    btn.dataset.month = k;
+    tmf.appendChild(btn);
+  });
+
+  var tlChart = new Chart(document.getElementById('timelineChart').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: sd,
+      datasets: [
+        {label:'Calvin (7-day avg)', data:cR, borderColor:'#E8834A', backgroundColor:'rgba(232,131,74,0.08)', fill:true, tension:0.35, borderWidth:2.5, pointRadius:0, pointHitRadius:10},
+        {label:'Avery T (7-day avg)', data:aR, borderColor:'#5B8DEF', backgroundColor:'rgba(91,141,239,0.08)', fill:true, tension:0.35, borderWidth:2.5, pointRadius:0, pointHitRadius:10}
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      interaction: {mode:'index', intersect:false},
+      scales: {
+        x: {grid:{display:false}, ticks:{maxTicksLimit:12,font:{size:11}}},
+        y: {title:{display:true,text:'Seconds',font:{size:12,weight:'600'}}, grid:{color:'rgba(0,0,0,0.04)'}, ticks:{font:{size:11}}}
+      },
+      plugins: {
+        legend: {position:'top', labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,padding:16,font:{size:12,weight:'500'}}},
+        tooltip: {
+          backgroundColor:'#3A2E26', titleFont:{weight:'700'}, bodyFont:{size:13}, cornerRadius:8, padding:10,
+          callbacks: {
+            label: function(ctx) { return ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(0) + 's'; }
+          }
+        }
+      }
+    }
+  });
+
+  tmf.addEventListener('click', function(e) {
+    var btn = e.target.closest('.month-btn');
+    if(!btn) return;
+    var month = btn.dataset.month;
+    document.querySelectorAll('#timelineMonthFilter .month-btn').forEach(function(b) {
+      b.classList.toggle('active', b.dataset.month === month);
+    });
+    var fd = month === 'all' ? dates : dates.filter(function(d){ return d.indexOf(month) === 0; });
+    var fc = fd.map(function(d){ return raw[d].Calvin; });
+    var fa = fd.map(function(d){ return raw[d]['Avery T']; });
+    var w = Math.min(7, fc.length);
+    tlChart.data.labels = fd.map(function(d){ return shortFmt(d); });
+    tlChart.data.datasets[0].data = rollingAvg(fc, w);
+    tlChart.data.datasets[1].data = rollingAvg(fa, w);
+    tlChart.update();
+  });
+
+  // Diff chart
+  var diffs = dates.map(function(d) { return raw[d].Calvin - raw[d]['Avery T']; });
+  var diffColors = diffs.map(function(d) { return d <= 0 ? 'rgba(232,131,74,0.7)' : 'rgba(91,141,239,0.7)'; });
+  new Chart(document.getElementById('diffChart').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: sd,
+      datasets: [{
+        label: 'Margin', data: diffs, backgroundColor: diffColors,
+        borderRadius: 2, barPercentage: 1, categoryPercentage: 1
+      }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      scales: {
+        x: {grid:{display:false}, ticks:{maxTicksLimit:10,font:{size:11}}},
+        y: {
+          grid: {color:'rgba(0,0,0,0.04)'},
+          ticks: {
+            font:{size:11},
+            callback: function(v) { return v + 's'; }
+          }
+        }
+      },
+      plugins: {
+        legend: {display:false},
+        tooltip: {
+          backgroundColor:'#3A2E26', cornerRadius:8, padding:10,
+          callbacks: {
+            label: function(ctx) {
+              var v = ctx.parsed.y;
+              if(v < 0) return 'Calvin wins by ' + Math.abs(v) + 's';
+              if(v > 0) return 'Avery T wins by ' + v + 's';
+              return 'Tie!';
+            }
+          }
+        }
+      }
+    }
+  });
+
+  // Day-by-day browser
+  var cdi = dates.length - 1;
+  function renderDay(idx) {
+    var d = dates[idx];
+    var c = raw[d].Calvin;
+    var a = raw[d]['Avery T'];
+    var diff = c - a;
+    document.getElementById('dayDateLabel').textContent  = fmtDate(d);
+    document.getElementById('dayIndexLabel').textContent = 'Game ' + (idx+1) + ' of ' + dates.length;
+    document.getElementById('dayPrev').disabled = idx === 0;
+    document.getElementById('dayNext').disabled = idx === dates.length-1;
+    document.getElementById('daySelect').value = d;
+    var ic = c < a, ia = a < c, it = c === a;
+    document.getElementById('dayResultCards').innerHTML =
+      '<div class="day-player-card calvin-card' + (ic?' winner':'') + '">' +
+        (ic ? '<span class="winner-crown">&#x1F451;</span>' : '') +
+        '<div class="player-name">Calvin</div>' +
+        '<div class="player-time">' + c + '</div>' +
+        '<div class="player-unit">seconds</div>' +
+      '</div>' +
+      '<div class="day-vs"><div class="day-vs-text">vs</div><div class="day-margin-text">' + Math.abs(diff) + 's gap</div></div>' +
+      '<div class="day-player-card avery-card' + (ia?' winner':'') + '">' +
+        (ia ? '<span class="winner-crown">&#x1F451;</span>' : '') +
+        '<div class="player-name">Avery T</div>' +
+        '<div class="player-time">' + a + '</div>' +
+        '<div class="player-unit">seconds</div>' +
+      '</div>';
+    var banner = document.getElementById('dayResultBanner');
+    if(it)      { banner.className='day-result-banner tie';    banner.textContent='&#x1F91D; Perfect Tie! Both solved in '+c+'s'; }
+    else if(ic) { banner.className='day-result-banner calvin'; banner.textContent='Calvin wins by '+Math.abs(diff)+' seconds'; }
+    else        { banner.className='day-result-banner avery';  banner.textContent='Avery T wins by '+Math.abs(diff)+' seconds'; }
+  }
+
+  var ds = document.getElementById('daySelect');
+  dates.forEach(function(d) {
+    var o = document.createElement('option');
+    o.value = d; o.textContent = fmtDate(d);
+    ds.appendChild(o);
+  });
+  renderDay(cdi);
+
+  document.getElementById('dayPrev').addEventListener('click', function() { if(cdi>0){cdi--;renderDay(cdi);} });
+  document.getElementById('dayNext').addEventListener('click', function() { if(cdi<dates.length-1){cdi++;renderDay(cdi);} });
+  ds.addEventListener('change', function(e) { cdi=dates.indexOf(e.target.value); renderDay(cdi); });
+  document.getElementById('dayRandom').addEventListener('click', function() { cdi=Math.floor(Math.random()*dates.length); renderDay(cdi); });
+  document.addEventListener('keydown', function(e) {
+    if(!document.getElementById('panel-daybyday').classList.contains('active')) return;
+    if(e.key==='ArrowLeft'  && cdi>0)               { cdi--; renderDay(cdi); }
+    if(e.key==='ArrowRight' && cdi<dates.length-1)  { cdi++; renderDay(cdi); }
+  });
+
+  // Records panel
+  var recs = [
+    {cls:'calvin-record', meta:"Calvin's Fastest",   headline:calvinBest+'s',            detail:'on '+shortFmt(calvinBestDate),           chip:fmtDate(calvinBestDate),          click:calvinBestDate},
+    {cls:'avery-record',  meta:"Avery's Fastest",    headline:averyBest+'s',             detail:'on '+shortFmt(averyBestDate),            chip:fmtDate(averyBestDate),           click:averyBestDate},
+    {cls:'calvin-record', meta:"Biggest Calvin Win", headline:'+'+calvinMargins[0].margin+'s', detail:'Beat Avery by '+calvinMargins[0].margin+'s', chip:fmtDate(calvinMargins[0].date), click:calvinMargins[0].date},
+    {cls:'avery-record',  meta:"Biggest Avery Win",  headline:'+'+averyMargins[0].margin+'s', detail:'Beat Calvin by '+averyMargins[0].margin+'s', chip:fmtDate(averyMargins[0].date),  click:averyMargins[0].date},
+    {cls:'tie-record',    meta:"Total Ties",          headline:ties,                      detail:'Perfect matches out of '+dates.length,   chip:Math.round(ties/dates.length*100)+'% tie rate'},
+    {cls:'calvin-record', meta:"Calvin Win Rate",    headline:Math.round(calvinWins/dates.length*100)+'%', detail:calvinWins+' wins out of '+dates.length}
+  ];
+  var rg = document.getElementById('recordsGrid');
+  recs.forEach(function(r, i) {
+    var card = document.createElement('div');
+    card.className = 'record-card '+r.cls;
+    card.style.animationDelay = (i*0.05)+'s';
+    card.innerHTML = '<div class="record-meta">'+r.meta+'</div><div class="record-headline">'+r.headline+'</div><div class="record-detail">'+r.detail+'</div>'+(r.chip?'<div class="record-date-chip">'+r.chip+'</div>':'');
+    if(r.click) {
+      card.addEventListener('click', function() {
+        cdi = dates.indexOf(r.click);
+        document.querySelector('[data-tab="daybyday"]').click();
+        renderDay(cdi);
+      });
+    }
+    rg.appendChild(card);
+  });
+
+  // Win streaks
+  function computeStreaks() {
+    var ss=[], cur=null, len=0, start=null;
+    dates.forEach(function(d) {
+      var c=raw[d].Calvin, a=raw[d]['Avery T'];
+      var w = c<a?'calvin':a<c?'avery':'tie';
+      if(w !== 'tie') {
+        if(w === cur) { len++; }
+        else {
+          if(cur && len>1) ss.push({player:cur, length:len, start:start, end:d});
+          cur=w; len=1; start=d;
+        }
+      } else {
+        if(cur && len>1) ss.push({player:cur, length:len, start:start, end:d});
+        cur=null; len=0;
+      }
+    });
+    if(cur && len>1) ss.push({player:cur, length:len, start:start, end:dates[dates.length-1]});
+    return ss.sort(function(a,b){return b.length-a.length;}).slice(0,8);
+  }
+  var st = document.getElementById('streakTable');
+  st.innerHTML = '<thead><tr><th>Player</th><th>Win Streak</th><th>From</th><th>To</th></tr></thead>';
+  var stb = document.createElement('tbody');
+  computeStreaks().forEach(function(s) {
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td class="streak-player '+s.player+'">'+(s.player==='calvin'?'Calvin':'Avery T')+'</td><td>'+s.length+' in a row</td><td>'+shortFmt(s.start)+'</td><td>'+shortFmt(s.end)+'</td>';
+    stb.appendChild(tr);
+  });
+  st.appendChild(stb);
+
+  // Outliers
+  var ot = document.getElementById('outliersTable');
+  ot.innerHTML = '<thead><tr><th>Player</th><th>Time</th><th>Date</th><th>Opponent</th></tr></thead>';
+  var otb = document.createElement('tbody');
+  var outliers = [];
+  dates.forEach(function(d) {
+    if(raw[d].Calvin >= 200) outliers.push({player:'Calvin', time:raw[d].Calvin, date:d});
+    if(raw[d]['Avery T'] >= 200) outliers.push({player:'Avery T', time:raw[d]['Avery T'], date:d});
+  });
+  outliers.sort(function(a,b){return b.time-a.time;}).slice(0,10).forEach(function(o) {
+    var opp = o.player==='Calvin' ? raw[o.date]['Avery T'] : raw[o.date].Calvin;
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td class="streak-player '+(o.player==='Calvin'?'calvin':'avery')+'">'+o.player+'</td><td>'+o.time+'s</td><td>'+shortFmt(o.date)+'</td><td>'+opp+'s</td>';
+    tr.style.cursor='pointer';
+    (function(oDate) {
+      tr.addEventListener('click', function() {
+        cdi = dates.indexOf(oDate);
+        document.querySelector('[data-tab="daybyday"]').click();
+        renderDay(cdi);
+      });
+    })(o.date);
+    otb.appendChild(tr);
+  });
+  ot.appendChild(otb);
+
+  // Insights
+  var insights = [
+    {emoji:'&#x1F422;', title:'The Tortoise & The Hare',     text:"Calvin is the tortoise — steady and reliable, rarely blowing up past 200s. Avery is the hare — capable of brilliance but prone to spectacular meltdowns (603s on Aug 24!). Calvin's consistency is his superpower."},
+    {emoji:'&#x1F525;', title:'Best Days Ever',               text:'Calvin\'s fastest: '+calvinBest+'s ('+shortFmt(calvinBestDate)+'). Avery\'s fastest: '+averyBest+'s ('+shortFmt(averyBestDate)+'). Both blazing fast, but Calvin edges it out by '+(averyBest-calvinBest)+' seconds.'},
+    {emoji:'&#x1F4C9;', title:'Getting Better With Practice', text:'Both players improved over time. Compare the June averages (Calvin ~95s, Avery ~119s) to January (Calvin ~63s, Avery ~82s). Dedication pays off!'},
+    {emoji:'&#x1F4A5;', title:"Avery's Big Outliers",         text:"Avery has 12 solves over 200s vs. Calvin's 5. The wildest: 603s (Aug 24), 358s (Jun 21), 343s (Jan 31), and 337s (Jul 16). Those alone account for a huge chunk of Avery's average gap."},
+    {emoji:'&#x1F91D;', title:'Perfect Ties',                 text:ties+' days ended in a perfect tie — including a 131-131 nail-biter on Jul 6, a 53-53 on Aug 6, and a 29-29 photo finish on Dec 30.'},
+    {emoji:'&#x1F3C6;', title:'Biggest Blowout',              text:'Calvin\'s biggest win: '+calvinMargins[0].margin+' seconds faster on '+shortFmt(calvinMargins[0].date)+' ('+raw[calvinMargins[0].date].Calvin+'s vs '+raw[calvinMargins[0].date]['Avery T']+'s). Avery\'s biggest: '+averyMargins[0].margin+'s faster on '+shortFmt(averyMargins[0].date)+'.'}
+  ];
+  var ig = document.getElementById('insightGrid');
+  insights.forEach(function(ins) {
+    var card = document.createElement('div');
+    card.className = 'insight-card';
+    card.innerHTML = '<h3><span class="emoji">'+ins.emoji+'</span>'+ins.title+'</h3><p>'+ins.text+'</p>';
+    ig.appendChild(card);
+  });
+}
+</script>
+</body>
+</html>
