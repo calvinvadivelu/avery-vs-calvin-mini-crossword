@@ -99,7 +99,7 @@
   animation: tpop 0.5s 0.3s cubic-bezier(0.34,1.56,0.64,1) backwards;
 }
 .slide-big.orange { color: #F29060; }
-.slide-big.blue   { color: #7EB0FF; }
+.slide-big.blue   { color: #89CFF0; }
 .slide-big.gold   { color: #F5C97A; }
 .slide-big.green  { color: #7EDFA0; }
 .slide-big.red    { color: #FF8A8A; }
@@ -125,7 +125,7 @@
   margin-top: 1.1rem; animation: tpop 0.5s 0.68s ease-out backwards;
 }
 .chip-orange { background: rgba(242,144,96,0.2);  color: #F7B285; }
-.chip-blue   { background: rgba(91,141,239,0.2);  color: #8DB8FF; }
+.chip-blue   { background: rgba(137,207,240,0.2);  color: #89CFF0; }
 .chip-gold   { background: rgba(245,201,122,0.2); color: #F5C97A; }
 .chip-red    { background: rgba(255,138,138,0.2); color: #FF9999; }
 .chip-white  { background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.8); }
@@ -173,7 +173,7 @@
   transition: width 1.3s cubic-bezier(0.34,1.15,0.64,1);
 }
 .bar-fill.orange { background: linear-gradient(90deg,#b85520,#F29060); }
-.bar-fill.blue   { background: linear-gradient(90deg,#2a5fdb,#5B8DEF); }
+.bar-fill.blue   { background: linear-gradient(90deg,#3aaed4,#89CFF0); }
 
 .slide-cw-icon {
   display: inline-flex; gap: 4px; margin-bottom: 1.1rem;
@@ -194,7 +194,7 @@
   box-shadow: 0 4px 20px rgba(0,0,0,0.4);
 }
 .slide-avatar.calvin-av { border-color: #F29060; }
-.slide-avatar.avery-av  { border-color: #7EB0FF; }
+.slide-avatar.avery-av  { border-color: #89CFF0; }
 .slide-avatar-vs {
   font-family: 'Fraunces', serif;
   font-size: 1.3rem; color: rgba(255,255,255,0.25);
@@ -233,7 +233,7 @@
 
 :root {
   --calvin: #E8834A; --calvin-light: #FDEBD3; --calvin-glow: rgba(232,131,74,0.25);
-  --avery: #5B8DEF;  --avery-light: #D6E4FC;  --avery-glow: rgba(91,141,239,0.25);
+  --avery: #89CFF0;  --avery-light: #D9F0FB;  --avery-glow: rgba(137,207,240,0.25);
   --bg: #FFF8F0; --bg2: #FFF1E3; --text: #3A2E26; --text-muted: #8A7D74;
   --card: #FFFFFF; --card-shadow: rgba(58,46,38,0.06);
   --accent: #D4A86A; --tie: #C4B5A5;
@@ -648,14 +648,14 @@ var slideDefs = [
   // 2 — Head-to-Head versus
   {
     bg: ['#130e30','#060418'],
-    blobs: [{c:'#E8834A',s:320,x:'18%',y:'28%'},{c:'#5B8DEF',s:320,x:'78%',y:'65%'}],
-    html: '<div class="slide-eyebrow">The Rivalry</div><div class="slide-versus"><div class="versus-block"><div class="versus-name" style="color:#F7B285">Calvin</div><div class="versus-num" style="color:#F29060">'+calvinWins+'</div><div class="versus-unit">wins</div></div><div class="versus-divider">vs</div><div class="versus-block"><div class="versus-name" style="color:#8DB8FF">Avery</div><div class="versus-num" style="color:#7EB0FF">'+averyWins+'</div><div class="versus-unit">wins</div></div></div><div class="slide-sub" style="margin-top:1.3rem">+ '+ties+' perfect ties &#x1F91D;</div>'
+    blobs: [{c:'#E8834A',s:320,x:'18%',y:'28%'},{c:'#89CFF0',s:320,x:'78%',y:'65%'}],
+    html: '<div class="slide-eyebrow">The Rivalry</div><div class="slide-versus"><div class="versus-block"><div class="versus-name" style="color:#F7B285">Calvin</div><div class="versus-num" style="color:#F29060">'+calvinWins+'</div><div class="versus-unit">wins</div></div><div class="versus-divider">vs</div><div class="versus-block"><div class="versus-name" style="color:#A9DFEE">Avery</div><div class="versus-num" style="color:#89CFF0">'+averyWins+'</div><div class="versus-unit">wins</div></div></div><div class="slide-sub" style="margin-top:1.3rem">+ '+ties+' perfect ties &#x1F91D;</div>'
   },
   // 3 — Speed comparison (bars)
   {
     bg: ['#111111','#050505'],
-    blobs: [{c:'#E8834A',s:280,x:'14%',y:'22%'},{c:'#5B8DEF',s:280,x:'82%',y:'70%'}],
-    html: '<div class="slide-eyebrow">Average solve time</div><div class="slide-label" style="margin-bottom:1.6rem;font-size:1.1rem;opacity:0.7">Seconds per puzzle</div><div class="slide-bars"><div class="bar-row"><div class="bar-name" style="color:#F7B285">Calvin</div><div class="bar-track"><div class="bar-fill orange" id="barCalvin">'+calvinAvg+'s</div></div></div><div class="bar-row"><div class="bar-name" style="color:#8DB8FF">Avery</div><div class="bar-track"><div class="bar-fill blue" id="barAvery">'+averyAvg+'s</div></div></div></div><div class="slide-sub" style="margin-top:1rem">Calvin is ~'+(parseFloat(averyAvg)-parseFloat(calvinAvg)).toFixed(0)+' seconds faster on average</div>',
+    blobs: [{c:'#E8834A',s:280,x:'14%',y:'22%'},{c:'#89CFF0',s:280,x:'82%',y:'70%'}],
+    html: '<div class="slide-eyebrow">Average solve time</div><div class="slide-label" style="margin-bottom:1.6rem;font-size:1.1rem;opacity:0.7">Seconds per puzzle</div><div class="slide-bars"><div class="bar-row"><div class="bar-name" style="color:#F7B285">Calvin</div><div class="bar-track"><div class="bar-fill orange" id="barCalvin">'+calvinAvg+'s</div></div></div><div class="bar-row"><div class="bar-name" style="color:#A9DFEE">Avery</div><div class="bar-track"><div class="bar-fill blue" id="barAvery">'+averyAvg+'s</div></div></div></div><div class="slide-sub" style="margin-top:1rem">Calvin is ~'+(parseFloat(averyAvg)-parseFloat(calvinAvg)).toFixed(0)+' seconds faster on average</div>',
     onEnter: function() {
       setTimeout(function() {
         var max = Math.max(parseFloat(calvinAvg), parseFloat(averyAvg));
@@ -669,32 +669,32 @@ var slideDefs = [
   // 4 — Fastest solves face-off
   {
     bg: ['#051630','#01070f'],
-    blobs: [{c:'#E8834A',s:300,x:'20%',y:'32%'},{c:'#5B8DEF',s:300,x:'78%',y:'60%'}],
-    html: '<div class="slide-eyebrow">Speed Demons &#x26A1;</div><div class="slide-versus"><div class="versus-block"><div class="versus-name" style="color:#F7B285">Calvin</div><div class="versus-num" style="color:#F29060">'+calvinBest+'s</div><div class="versus-unit">fastest solve</div></div><div class="versus-divider">vs</div><div class="versus-block"><div class="versus-name" style="color:#8DB8FF">Avery</div><div class="versus-num" style="color:#7EB0FF">'+averyBest+'s</div><div class="versus-unit">fastest solve</div></div></div><div class="slide-sub" style="margin-top:1.3rem">Sub-30s solves: Calvin <strong style="color:#F29060">'+calvinSub30+'</strong> &middot; Avery <strong style="color:#7EB0FF">'+averySub30+'</strong></div>'
+    blobs: [{c:'#E8834A',s:300,x:'20%',y:'32%'},{c:'#89CFF0',s:300,x:'78%',y:'60%'}],
+    html: '<div class="slide-eyebrow">Speed Demons &#x26A1;</div><div class="slide-versus"><div class="versus-block"><div class="versus-name" style="color:#F7B285">Calvin</div><div class="versus-num" style="color:#F29060">'+calvinBest+'s</div><div class="versus-unit">fastest solve</div></div><div class="versus-divider">vs</div><div class="versus-block"><div class="versus-name" style="color:#A9DFEE">Avery</div><div class="versus-num" style="color:#89CFF0">'+averyBest+'s</div><div class="versus-unit">fastest solve</div></div></div><div class="slide-sub" style="margin-top:1.3rem">Sub-30s solves: Calvin <strong style="color:#F29060">'+calvinSub30+'</strong> &middot; Avery <strong style="color:#89CFF0">'+averySub30+'</strong></div>'
   },
   // 5 — Worst Days (each person's slowest solve)
   {
     bg: ['#220808','#0d0303'],
     blobs: [{c:'#cc3030',s:520,x:'50%',y:'48%'},{c:'#882020',s:180,x:'82%',y:'14%'}],
-    html: '<div class="slide-eyebrow">Worst Days &#x1F62C;</div><div class="slide-versus"><div class="versus-block"><div class="versus-name" style="color:#F7B285">Calvin</div><div class="versus-num" style="color:#FF8A8A;font-size:clamp(2.8rem,12vw,5.5rem)">'+calvinWorst+'s</div><div class="versus-unit">'+shortFmt(calvinWorstDate)+'</div></div><div class="versus-divider">vs</div><div class="versus-block"><div class="versus-name" style="color:#8DB8FF">Avery</div><div class="versus-num" style="color:#FF8A8A;font-size:clamp(2.8rem,12vw,5.5rem)">'+averyWorst+'s</div><div class="versus-unit">'+shortFmt(averyWorstDate)+'</div></div></div><div class="slide-sub" style="margin-top:1rem">Avery\'s worst was '+(averyWorst - calvinWorst)+' seconds slower than Calvin\'s</div>'
+    html: '<div class="slide-eyebrow">Worst Days &#x1F62C;</div><div class="slide-versus"><div class="versus-block"><div class="versus-name" style="color:#F7B285">Calvin</div><div class="versus-num" style="color:#FF8A8A;font-size:clamp(2.8rem,12vw,5.5rem)">'+calvinWorst+'s</div><div class="versus-unit">'+shortFmt(calvinWorstDate)+'</div></div><div class="versus-divider">vs</div><div class="versus-block"><div class="versus-name" style="color:#A9DFEE">Avery</div><div class="versus-num" style="color:#FF8A8A;font-size:clamp(2.8rem,12vw,5.5rem)">'+averyWorst+'s</div><div class="versus-unit">'+shortFmt(averyWorstDate)+'</div></div></div><div class="slide-sub" style="margin-top:1rem">Avery\'s worst was '+(averyWorst - calvinWorst)+' seconds slower than Calvin\'s</div>'
   },
   // 7 — Win Streaks comparison
   {
     bg: ['#220808','#0d0303'],
     blobs: [{c:'#ff6b6b',s:500,x:'48%',y:'48%'},{c:'#cc3030',s:180,x:'80%',y:'18%'}],
-    html: '<div class="slide-eyebrow">Hot Streaks &#x1F525;</div><div class="slide-versus"><div class="versus-block"><div class="versus-name" style="color:#F7B285">Calvin</div><div class="versus-num" style="color:#F29060">'+maxCStrk+'</div><div class="versus-unit">wins in a row</div></div><div class="versus-divider">vs</div><div class="versus-block"><div class="versus-name" style="color:#8DB8FF">Avery</div><div class="versus-num" style="color:#7EB0FF">'+maxAStrk+'</div><div class="versus-unit">wins in a row</div></div></div><div class="slide-sub" style="margin-top:1rem">Calvin more than doubled Avery\'s best streak</div>'
+    html: '<div class="slide-eyebrow">Hot Streaks &#x1F525;</div><div class="slide-versus"><div class="versus-block"><div class="versus-name" style="color:#F7B285">Calvin</div><div class="versus-num" style="color:#F29060">'+maxCStrk+'</div><div class="versus-unit">wins in a row</div></div><div class="versus-divider">vs</div><div class="versus-block"><div class="versus-name" style="color:#A9DFEE">Avery</div><div class="versus-num" style="color:#89CFF0">'+maxAStrk+'</div><div class="versus-unit">wins in a row</div></div></div><div class="slide-sub" style="margin-top:1rem">Calvin more than doubled Avery\'s best streak</div>'
   },
   // 8 — Close calls + best combined day
   {
     bg: ['#1a1520','#0a080e'],
-    blobs: [{c:'#E8834A',s:250,x:'20%',y:'30%'},{c:'#5B8DEF',s:250,x:'78%',y:'65%'},{c:'#D4A86A',s:200,x:'50%',y:'80%'}],
+    blobs: [{c:'#E8834A',s:250,x:'20%',y:'30%'},{c:'#89CFF0',s:250,x:'78%',y:'65%'},{c:'#D4A86A',s:200,x:'50%',y:'80%'}],
     html: '<div class="slide-eyebrow">Photo Finishes &#x1F3CE;&#xFE0F;</div><div class="slide-big gold" style="font-size:clamp(4rem,16vw,8rem)">'+closeCalls+'</div><div class="slide-label">games within 5 seconds</div><div class="slide-sub" style="margin-top:1.3rem">Best day together: <strong style="color:#fff">'+bestCombined.total+'s combined</strong> on '+shortFmt(bestCombined.date)+'<br>Worst: <strong style="color:#fff">'+worstCombined.total+'s</strong> on '+shortFmt(worstCombined.date)+' &#x1F62C;</div>'
   },
   // 10 — Both improved (comparison)
   {
     bg: ['#061a0e','#020a06'],
     blobs: [{c:'#7EDFA0',s:460,x:'50%',y:'56%'},{c:'#2daf62',s:200,x:'14%',y:'18%'}],
-    html: '<div class="slide-eyebrow">You both leveled up &#x1F4C8;</div><div class="slide-versus"><div class="versus-block"><div class="versus-name" style="color:#F7B285">Calvin</div><div class="versus-num" style="color:#7EDFA0;font-size:clamp(2.8rem,12vw,5.5rem)">&minus;'+dropC+'s</div><div class="versus-unit">'+jC8+'s &rarr; '+jnC8+'s</div></div><div class="versus-divider">vs</div><div class="versus-block"><div class="versus-name" style="color:#8DB8FF">Avery</div><div class="versus-num" style="color:#7EDFA0;font-size:clamp(2.8rem,12vw,5.5rem)">&minus;'+dropA+'s</div><div class="versus-unit">'+jA8+'s &rarr; '+jnA8+'s</div></div></div><div class="slide-sub" style="margin-top:1rem">June avg &rarr; January avg &middot; Avery improved more but Calvin started faster</div>'
+    html: '<div class="slide-eyebrow">You both leveled up &#x1F4C8;</div><div class="slide-versus"><div class="versus-block"><div class="versus-name" style="color:#F7B285">Calvin</div><div class="versus-num" style="color:#7EDFA0;font-size:clamp(2.8rem,12vw,5.5rem)">&minus;'+dropC+'s</div><div class="versus-unit">'+jC8+'s &rarr; '+jnC8+'s</div></div><div class="versus-divider">vs</div><div class="versus-block"><div class="versus-name" style="color:#A9DFEE">Avery</div><div class="versus-num" style="color:#7EDFA0;font-size:clamp(2.8rem,12vw,5.5rem)">&minus;'+dropA+'s</div><div class="versus-unit">'+jA8+'s &rarr; '+jnA8+'s</div></div></div><div class="slide-sub" style="margin-top:1rem">June avg &rarr; January avg &middot; Avery improved more but Calvin started faster</div>'
   }
 ];
 
@@ -895,7 +895,7 @@ function initDashboard() {
       labels: ['Calvin Wins','Avery Wins','Ties'],
       datasets: [{
         data: [calvinWins, averyWins, ties],
-        backgroundColor: ['#E8834A','#5B8DEF','#C4B5A5'],
+        backgroundColor: ['#E8834A','#89CFF0','#C4B5A5'],
         borderWidth: 0, spacing: 3, borderRadius: 6
       }]
     },
@@ -908,7 +908,7 @@ function initDashboard() {
   var dl = document.getElementById('donutLegend');
   [
     {label:'Calvin Wins — '+calvinWins+' ('+Math.round(calvinWins/dates.length*100)+'%)', color:'#E8834A'},
-    {label:'Avery Wins — '+averyWins+' ('+Math.round(averyWins/dates.length*100)+'%)', color:'#5B8DEF'},
+    {label:'Avery Wins — '+averyWins+' ('+Math.round(averyWins/dates.length*100)+'%)', color:'#89CFF0'},
     {label:'Ties — '+ties+' ('+Math.round(ties/dates.length*100)+'%)', color:'#C4B5A5'}
   ].forEach(function(item) {
     var el = document.createElement('div');
@@ -936,7 +936,7 @@ function initDashboard() {
       labels: ml,
       datasets: [
         {label:'Calvin',  data:mk.map(function(k){return avgArr(mo[k].calvin);}), backgroundColor:'#E8834A', borderRadius:6, barPercentage:0.7, categoryPercentage:0.7},
-        {label:'Avery', data:mk.map(function(k){return avgArr(mo[k].avery);}),  backgroundColor:'#5B8DEF', borderRadius:6, barPercentage:0.7, categoryPercentage:0.7}
+        {label:'Avery', data:mk.map(function(k){return avgArr(mo[k].avery);}),  backgroundColor:'#89CFF0', borderRadius:6, barPercentage:0.7, categoryPercentage:0.7}
       ]
     },
     options: {
@@ -990,7 +990,7 @@ function initDashboard() {
       labels: sd,
       datasets: [
         {label:'Calvin (7-day avg)', data:cR, borderColor:'#E8834A', backgroundColor:'rgba(232,131,74,0.08)', fill:true, tension:0.35, borderWidth:2.5, pointRadius:0, pointHitRadius:10},
-        {label:'Avery (7-day avg)', data:aR, borderColor:'#5B8DEF', backgroundColor:'rgba(91,141,239,0.08)', fill:true, tension:0.35, borderWidth:2.5, pointRadius:0, pointHitRadius:10}
+        {label:'Avery (7-day avg)', data:aR, borderColor:'#89CFF0', backgroundColor:'rgba(137,207,240,0.08)', fill:true, tension:0.35, borderWidth:2.5, pointRadius:0, pointHitRadius:10}
       ]
     },
     options: {
@@ -1031,7 +1031,7 @@ function initDashboard() {
 
   // Diff chart
   var diffs = dates.map(function(d) { return raw[d].Calvin - raw[d]['Avery']; });
-  var diffColors = diffs.map(function(d) { return d <= 0 ? 'rgba(232,131,74,0.7)' : 'rgba(91,141,239,0.7)'; });
+  var diffColors = diffs.map(function(d) { return d <= 0 ? 'rgba(232,131,74,0.7)' : 'rgba(137,207,240,0.7)'; });
   new Chart(document.getElementById('diffChart').getContext('2d'), {
     type: 'bar',
     data: {
